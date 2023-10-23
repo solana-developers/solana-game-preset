@@ -1,0 +1,21 @@
+[package]
+name = "lumberjack"
+version = "0.1.0"
+description = "Created with Anchor"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "lumberjack"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = { version = "0.28.0", features = ["init-if-needed"] }
+session-keys = { version = "2.0.2", features = ["no-entrypoint"] } 
+solana-program = "1.16.16"
