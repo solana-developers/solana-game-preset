@@ -15,10 +15,17 @@ export const program = new Program<Lumberjack>(IDL, programId, {
   connection,
 })
 
+export const [gameDataPDA] = PublicKey.findProgramAddressSync(
+  [Buffer.from("gameData", "utf8")],
+  program.programId
+)
+
 // Player Data Account Type from Idl
 export type PlayerData = IdlAccounts<Lumberjack>["playerData"]
+export type GameData = IdlAccounts<Lumberjack>["gameData"]
 
 // Constants for the game
 export const TIME_TO_REFILL_ENERGY: BN = new BN(60)
-export const MAX_ENERGY = 10
+export const MAX_ENERGY = 100
 export const ENERGY_PER_TICK: BN = new BN(1)
+export const TOTAL_WOOD_AVAILABLE: BN = new BN(50)

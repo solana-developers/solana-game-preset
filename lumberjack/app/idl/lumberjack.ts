@@ -11,6 +11,11 @@ export type Lumberjack = {
           "isSigner": false
         },
         {
+          "name": "gameData",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "signer",
           "isMut": true,
           "isSigner": true
@@ -38,24 +43,7 @@ export type Lumberjack = {
           "isSigner": false
         },
         {
-          "name": "signer",
-          "isMut": true,
-          "isSigner": true
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "update",
-      "accounts": [
-        {
-          "name": "sessionToken",
-          "isMut": false,
-          "isSigner": false,
-          "isOptional": true
-        },
-        {
-          "name": "player",
+          "name": "gameData",
           "isMut": true,
           "isSigner": false
         },
@@ -65,10 +53,27 @@ export type Lumberjack = {
           "isSigner": true
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "counter",
+          "type": "u16"
+        }
+      ]
     }
   ],
   "accounts": [
+    {
+      "name": "gameData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "totalWoodCollected",
+            "type": "u64"
+          }
+        ]
+      }
+    },
     {
       "name": "playerData",
       "type": {
@@ -133,6 +138,11 @@ export const IDL: Lumberjack = {
           "isSigner": false
         },
         {
+          "name": "gameData",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "signer",
           "isMut": true,
           "isSigner": true
@@ -160,24 +170,7 @@ export const IDL: Lumberjack = {
           "isSigner": false
         },
         {
-          "name": "signer",
-          "isMut": true,
-          "isSigner": true
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "update",
-      "accounts": [
-        {
-          "name": "sessionToken",
-          "isMut": false,
-          "isSigner": false,
-          "isOptional": true
-        },
-        {
-          "name": "player",
+          "name": "gameData",
           "isMut": true,
           "isSigner": false
         },
@@ -187,10 +180,27 @@ export const IDL: Lumberjack = {
           "isSigner": true
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "counter",
+          "type": "u16"
+        }
+      ]
     }
   ],
   "accounts": [
+    {
+      "name": "gameData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "totalWoodCollected",
+            "type": "u64"
+          }
+        ]
+      }
+    },
     {
       "name": "playerData",
       "type": {

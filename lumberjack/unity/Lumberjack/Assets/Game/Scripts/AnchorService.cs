@@ -10,7 +10,6 @@ using Lumberjack.Program;
 using Solana.Unity.Programs;
 using Solana.Unity.Programs.Models;
 using Solana.Unity.Rpc.Core.Http;
-using Solana.Unity.Rpc.Core.Sockets;
 using Solana.Unity.Rpc.Messages;
 using Solana.Unity.Rpc.Models;
 using Solana.Unity.Rpc.Types;
@@ -18,6 +17,7 @@ using Solana.Unity.SDK;
 using Solana.Unity.SessionKeys.GplSession.Accounts;
 using Solana.Unity.Wallet;
 using Services;
+using Socket;
 using UnityEngine;
 
 public class AnchorService : MonoBehaviour
@@ -45,6 +45,8 @@ public class AnchorService : MonoBehaviour
     private int nonBlockingTransactionsInProgress;
     private long? sessionValidUntil;
     private string sessionKeyPassword = "inGame";
+    private string levelSeed = "gameData";
+    private ushort transactionCounter = 0;
 
     private void Awake()
     {
@@ -60,6 +62,11 @@ public class AnchorService : MonoBehaviour
         Web3.OnLogin += OnLogin;
     }
 
+    private void Start()
+    {
+        ServiceFactory.Resolve<SolPlayWebSocketService>().Connect(Web3.Instance.webSocketsRpc);
+    }
+
     private void OnDestroy()
     {
         Web3.OnLogin -= OnLogin;
@@ -68,7 +75,35 @@ public class AnchorService : MonoBehaviour
     private async void OnLogin(Account account)
     {
         Debug.Log("Logged in with pubkey: " + account.PublicKey);
+        
+        await RequestAirdropIfSolValueIsLow();
+        
+        sessionWallet = await SessionWallet.GetSessionWallet(AnchorProgramIdPubKey, sessionKeyPassword);
+        await UpdateSessionValid();
 
+        FindPDAs(account);
+
+        lumberjackClient = new LumberjackClient(Web3.Rpc, Web3.WsRpc, AnchorProgramIdPubKey);
+
+        await SubscribeToPlayerDataUpdates();
+        await SubscribeToGameDataUpdates();
+
+        OnInitialDataLoaded?.Invoke();
+    }
+
+    private void FindPDAs(Account account)
+    {
+        PublicKey.TryFindProgramAddress(new[]
+                {Encoding.UTF8.GetBytes("player"), account.PublicKey.KeyBytes},
+            AnchorProgramIdPubKey, out PlayerDataPDA, out byte bump);
+
+        PublicKey.TryFindProgramAddress(new[]
+                {Encoding.UTF8.GetBytes(levelSeed)},
+            AnchorProgramIdPubKey, out GameDataPDA, out byte bump2);
+    }
+
+    private static async Task RequestAirdropIfSolValueIsLow()
+    {
         var solBalance = await Web3.Instance.WalletBase.GetBalance();
         if (solBalance < 20000)
         {
@@ -79,24 +114,6 @@ public class AnchorService : MonoBehaviour
                 Debug.Log("Airdrop failed.");
             }
         }
-
-        sessionWallet = await SessionWallet.GetSessionWallet(AnchorProgramIdPubKey, sessionKeyPassword);
-        await UpdateSessionValid();
-
-        PublicKey.TryFindProgramAddress(new[]
-                {Encoding.UTF8.GetBytes("player"), account.PublicKey.KeyBytes},
-            AnchorProgramIdPubKey, out PlayerDataPDA, out byte bump);
-
-        PublicKey.TryFindProgramAddress(new[]
-                {Encoding.UTF8.GetBytes("gameData")},
-            AnchorProgramIdPubKey, out GameDataPDA, out byte bump2);
-
-        lumberjackClient = new LumberjackClient(Web3.Rpc, Web3.WsRpc, AnchorProgramIdPubKey);
-
-        await SubscribeToPlayerDataUpdates();
-        await SubscribeToGameDataUpdates();
-
-        OnInitialDataLoaded?.Invoke();
     }
 
     public bool IsInitialized()
@@ -131,19 +148,19 @@ public class AnchorService : MonoBehaviour
 
         if (playerData != null)
         {
-            await lumberjackClient.SubscribePlayerDataAsync(PlayerDataPDA, OnRecievedPlayerDataUpdate,
-                Commitment.Confirmed);
+            ServiceFactory.Resolve<SolPlayWebSocketService>()
+                .SubscribeToPubKeyData(PlayerDataPDA, OnRecievedPlayerDataUpdate);
         }
     }
 
-    private void OnRecievedPlayerDataUpdate(SubscriptionState state, ResponseValue<AccountInfo> value,
-        PlayerData playerData)
+    private void OnRecievedPlayerDataUpdate(SolPlayWebSocketService.MethodResult result)
     {
+        PlayerData playerData = PlayerData.Deserialize(result.result.value.dataBytes);
         Debug.Log($"Socket Message: Player has  {playerData.Wood} wood now.");
         CurrentPlayerData = playerData;
         OnPlayerDataChanged?.Invoke(playerData);
     }
-    
+
     private async Task SubscribeToGameDataUpdates()
     {
         AccountResultWrapper<GameData> gameData = null;
@@ -164,14 +181,15 @@ public class AnchorService : MonoBehaviour
 
         if (gameData != null)
         {
-            await lumberjackClient.SubscribeGameDataAsync(GameDataPDA, OnRecievedGameDataUpdate,
-                Commitment.Confirmed);
+            ServiceFactory.Resolve<SolPlayWebSocketService>()
+                .SubscribeToPubKeyData(GameDataPDA, OnRecievedGameDataUpdate);
         }
     }
 
-    private void OnRecievedGameDataUpdate(SubscriptionState state, ResponseValue<AccountInfo> value,
-        GameData gameData)
+    private void OnRecievedGameDataUpdate(SolPlayWebSocketService.MethodResult result)
     {
+        GameData gameData = GameData.Deserialize(result.result.value.dataBytes);
+
         Debug.Log($"Socket Message: Total log chopped  {gameData.TotalWoodCollected}.");
         CurrentGameData = gameData;
         OnGameDataChanged?.Invoke(gameData);
@@ -215,6 +233,7 @@ public class AnchorService : MonoBehaviour
 
         await UpdateSessionValid();
         await SubscribeToPlayerDataUpdates();
+        await SubscribeToGameDataUpdates();
     }
 
     private async Task<bool> SendAndConfirmTransaction(WalletBase wallet, Transaction transaction, string label = "",
@@ -238,9 +257,9 @@ public class AnchorService : MonoBehaviour
             return false;
         }
 
-        Debug.Log("Transaction sent: " + res.RawRpcResponse);
         if (res.WasSuccessful && res.Result != null)
         {
+            Debug.Log("Transaction sent: " + res.RawRpcResponse);
             Debug.Log("Confirming transaction: " + res.Result);
             await Web3.Rpc.ConfirmTransaction(res.Result, Commitment.Confirmed);
             Debug.Log("Confirm done");
@@ -250,7 +269,7 @@ public class AnchorService : MonoBehaviour
             Debug.LogError("Transaction failed: " + res.RawRpcResponse);
             if (res.RawRpcResponse.Contains("InsufficientFundsForRent"))
             {
-                Debug.Log("Trigger session top up");
+                Debug.Log("Trigger session top up (Not implemented)");
                 // TODO: this can probably happen when the session key runs out of funds. 
                 //TriggerTopUpTransaction();
             }
@@ -286,13 +305,14 @@ public class AnchorService : MonoBehaviour
         {
             FeePayer = Web3.Account,
             Instructions = new List<TransactionInstruction>(),
-            RecentBlockHash = await Web3.BlockHash(maxSeconds: 1)
+            RecentBlockHash = await Web3.BlockHash(maxSeconds: 15)
         };
 
         ChopTreeAccounts chopTreeAccounts = new ChopTreeAccounts
         {
             Player = PlayerDataPDA,
-            GameData = GameDataPDA
+            GameData = GameDataPDA,
+            SystemProgram = SystemProgram.ProgramIdKey
         };
 
         if (useSession)
@@ -300,7 +320,7 @@ public class AnchorService : MonoBehaviour
             transaction.FeePayer = sessionWallet.Account.PublicKey;
             chopTreeAccounts.Signer = sessionWallet.Account.PublicKey;
             chopTreeAccounts.SessionToken = sessionWallet.SessionTokenPDA;
-            var chopInstruction = LumberjackProgram.ChopTree(chopTreeAccounts, AnchorProgramIdPubKey);
+            var chopInstruction = LumberjackProgram.ChopTree(chopTreeAccounts, transactionCounter++, "gameData", AnchorProgramIdPubKey);
             transaction.Add(chopInstruction);
             Debug.Log("Sign and send chop tree with session");
             await SendAndConfirmTransaction(sessionWallet, transaction, "Chop Tree with session.", isBlocking: false);
@@ -309,7 +329,7 @@ public class AnchorService : MonoBehaviour
         {
             transaction.FeePayer = Web3.Account.PublicKey;
             chopTreeAccounts.Signer = Web3.Account.PublicKey;
-            var chopInstruction = LumberjackProgram.ChopTree(chopTreeAccounts, AnchorProgramIdPubKey);
+            var chopInstruction = LumberjackProgram.ChopTree(chopTreeAccounts, transactionCounter++, "gameData", AnchorProgramIdPubKey);
             transaction.Add(chopInstruction);
             Debug.Log("Sign and send init without session");
             await SendAndConfirmTransaction(Web3.Wallet, transaction, "Chop Tree without session.");

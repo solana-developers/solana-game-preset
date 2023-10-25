@@ -4,8 +4,8 @@ Note that neither the program nor session keys are audited. Use at your own risk
 
 How to run this example:
 Follow the installation here: https://www.anchor-lang.com/docs/installation
-make sure to install solana CLI version 1.14.20 not the 1.16.x version
-sh -c "$(curl -sSfL https://release.solana.com/v1.14.20/install)"
+Install the latest 1.16 solana version (1.17 is not supported yet)
+sh -c "$(curl -sSfL https://release.solana.com/v1.16.18/install)"
 
 Anchor program
 1. Install the [Anchor CLI](https://project-serum.github.io/anchor/getting-started/installation.html)
@@ -134,26 +134,30 @@ The is a common technic in game development.
 const TIME_TO_REFILL_ENERGY: i64 = 60;
 const MAX_ENERGY: u64 = 10;
 
-pub fn update_energy(ctx: &mut ChopTree) -> Result<()> {
-    let mut time_passed: i64 = &Clock::get()?.unix_timestamp - &ctx.player.last_login;
-    let mut time_spent: i64 = 0;
-    while time_passed > TIME_TO_REFILL_ENERGY {
-        ctx.player.energy = ctx.player.energy + 1;
-        time_passed -= TIME_TO_REFILL_ENERGY;
-        time_spent += TIME_TO_REFILL_ENERGY;
-        if ctx.player.energy == MAX_ENERGY {
-            break;
+pub fn update_energy(&mut self) -> Result<()> {
+        // Get the current timestamp
+        let current_timestamp = Clock::get()?.unix_timestamp;
+
+        // Calculate the time passed since the last login
+        let mut time_passed: i64 = current_timestamp - self.last_login;
+
+        // Calculate the time spent refilling energy
+        let mut time_spent = 0;
+
+        while time_passed >= TIME_TO_REFILL_ENERGY && self.energy < MAX_ENERGY {
+            self.energy += 1;
+            time_passed -= TIME_TO_REFILL_ENERGY;
+            time_spent += TIME_TO_REFILL_ENERGY;
         }
-    }
 
-    if ctx.player.energy >= MAX_ENERGY {
-        ctx.player.last_login = Clock::get()?.unix_timestamp;
-    } else {
-        ctx.player.last_login += time_spent;
-    }
+        if self.energy >= MAX_ENERGY {
+            self.last_login = current_timestamp;
+        } else {
+            self.last_login += time_spent;
+        }
 
-    Ok(())
-}
+        Ok(())
+    }
 ```
 
 ## Js client 

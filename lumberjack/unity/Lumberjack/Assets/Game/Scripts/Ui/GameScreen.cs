@@ -77,7 +77,7 @@ public class GameScreen : MonoBehaviour
 
     private void OnGameDataChanged(GameData gameData)
     {
-        var totalLogAvailable = 5 - gameData.TotalWoodCollected;
+        var totalLogAvailable = 50 - gameData.TotalWoodCollected;
         TotalLogAvailableText.text = totalLogAvailable + " Wood available.";
     }
 

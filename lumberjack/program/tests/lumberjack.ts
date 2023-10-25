@@ -5,7 +5,6 @@ import { Lumberjack } from "../target/types/lumberjack";
 describe("lumberjack", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
-  console.log("anchor", anchor);
   const program = anchor.workspace.Lumberjack as Program<Lumberjack>;
 
   it("Init player and chop tree!", async () => {
@@ -23,11 +22,19 @@ describe("lumberjack", () => {
       program.programId
     );
 
+    const [gameDataPDA] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("gameData")       
+      ],
+      program.programId
+    );
+
     let tx = await program.methods.initPlayer()
     .accounts(
       {
         player: playerPDA,
-        signer: localKeypair.publicKey,
+        gameData: gameDataPDA,
+        signer: localKeypair.publicKey,        
         systemProgram: anchor.web3.SystemProgram.programId,
       }    
     )
@@ -37,17 +44,24 @@ describe("lumberjack", () => {
     
     await anchor.getProvider().connection.confirmTransaction(tx, "confirmed");
 
+    console.log("Confirmed", tx);
+
     for (let i = 0; i < 11; i++) {
+      console.log("Chop instruction {}", i);
+
       tx = await program.methods
-      .chopTree()
+      .chopTree(0, "gameData")
       .accounts(
         {
           player: playerPDA,
+          gameData: gameDataPDA,
+          sessionToken: null,
+          systemProgram: anchor.web3.SystemProgram.programId,
           signer: localKeypair.publicKey
         }    
       )
       .signers([localKeypair])
-      .rpc();
+      .rpc({skipPreflight: true});
       console.log("Chop instruction", tx);
       await anchor.getProvider().connection.confirmTransaction(tx, "confirmed");
     }

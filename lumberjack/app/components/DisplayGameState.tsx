@@ -5,7 +5,7 @@ import { useGameState } from "@/contexts/GameStateProvider"
 
 const DisplayPlayerData = () => {
   const { publicKey } = useWallet()
-  const { gameState, nextEnergyIn } = useGameState()
+  const { gameState, nextEnergyIn, totalWoodAvailable } = useGameState()
 
   return (
     <>
@@ -22,6 +22,7 @@ const DisplayPlayerData = () => {
               <Text>Next in: {nextEnergyIn}</Text>
             </VStack>
           </HStack>
+          <Text>Total Wood available: {totalWoodAvailable}</Text>
         </HStack>
       )}
     </>
