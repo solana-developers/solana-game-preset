@@ -101,31 +101,24 @@ export const GameStateProvider = ({
         playerState.lastLogin == undefined ||
         playerState.energy.toNumber() >= MAX_ENERGY
       ) {
-        return
+        return;
       }
-      const lastLoginTime = playerState.lastLogin.toNumber() * 1000
-      let timePassed = (Date.now() - lastLoginTime) / 1000
-      while (
-        timePassed >= TIME_TO_REFILL_ENERGY.toNumber() &&
-        playerState.energy.toNumber() < MAX_ENERGY
-      ) {
-        playerState.energy = playerState.energy.add(new BN(1))
-        playerState.lastLogin = playerState.lastLogin.add(TIME_TO_REFILL_ENERGY)
-        timePassed -= TIME_TO_REFILL_ENERGY.toNumber()
+    
+      const lastLoginTime = playerState.lastLogin.toNumber() * 1000;
+      const currentTime = Date.now();
+      let timePassed = (currentTime - lastLoginTime) / 1000;
+    
+      while (timePassed >= TIME_TO_REFILL_ENERGY.toNumber() && playerState.energy.toNumber() < MAX_ENERGY) {
+        playerState.energy = playerState.energy.add(new BN(1));
+        playerState.lastLogin = playerState.lastLogin.add(TIME_TO_REFILL_ENERGY);
+        timePassed -= TIME_TO_REFILL_ENERGY.toNumber();
       }
-      setTimePassed(timePassed)
-      let nextEnergyIn = Math.floor(
-        TIME_TO_REFILL_ENERGY.toNumber() - timePassed
-      )
-      if (
-        nextEnergyIn < TIME_TO_REFILL_ENERGY.toNumber() &&
-        nextEnergyIn >= 0
-      ) {
-        setEnergyNextIn(nextEnergyIn)
-      } else {
-        setEnergyNextIn(0)
-      }
-    }, 1000)
+    
+      setTimePassed(timePassed);
+    
+      const nextEnergyIn = Math.floor(TIME_TO_REFILL_ENERGY.toNumber() - timePassed);
+      setEnergyNextIn(nextEnergyIn > 0 ? nextEnergyIn : 0);
+    }, 1000);
 
     return () => clearInterval(interval)
   }, [playerState, timePassed, nextEnergyIn])

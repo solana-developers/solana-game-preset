@@ -1,5 +1,7 @@
 using System;
 using System.Collections;
+using System.Diagnostics;
+using DG.Tweening;
 using Frictionless;
 using Lumberjack.Accounts;
 using Solana.Unity.SDK;
@@ -7,6 +9,7 @@ using Services;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Debug = UnityEngine.Debug;
 
 /// <summary>
 /// This is the screen which handles the interaction with the anchor program.
@@ -25,13 +28,21 @@ public class GameScreen : MonoBehaviour
 
     public GameObject NotInitializedRoot;
     public GameObject InitializedRoot;
+    public GameObject ActionFx;
+    public GameObject ActionFxPosition;
+    public GameObject Tree;
+    
+    private Vector3 CharacterStartPosition;
+    private PlayerData currentPlayerData;
+    private Stopwatch stopwatch = new Stopwatch();
     
     void Start()
     {
         ChuckWoodSessionButton.onClick.AddListener(OnChuckWoodSessionButtonClicked);
         NftsButton.onClick.AddListener(OnNftsButtonClicked);
         InitGameDataButton.onClick.AddListener(OnInitGameDataButtonClicked);
-
+        CharacterStartPosition = ChuckWoodSessionButton.transform.localPosition;
+        
         StartCoroutine(UpdateNextEnergy());
         
         AnchorService.OnPlayerDataChanged += OnPlayerDataChanged;
@@ -72,12 +83,24 @@ public class GameScreen : MonoBehaviour
 
     private void OnPlayerDataChanged(PlayerData playerData)
     {
+        if (currentPlayerData != null && currentPlayerData.Wood < playerData.Wood)
+        {
+            stopwatch.Stop();
+            Debug.Log($"Last Transaction took: " + stopwatch.Elapsed.Milliseconds + "ms");
+            ChuckWoodSessionButton.transform.DOLocalMove(CharacterStartPosition, 0.2f);
+            Tree.transform.DOKill();
+            Tree.transform.localScale = Vector3.one;
+            Tree.transform.DOPunchScale(Vector3.one * 0.1f, 0.1f);
+            Instantiate(ActionFx, ActionFxPosition.transform.position, Quaternion.identity);
+        }
+
+        currentPlayerData = playerData;
         UpdateContent();
     }
 
     private void OnGameDataChanged(GameData gameData)
     {
-        var totalLogAvailable = 50 - gameData.TotalWoodCollected;
+        var totalLogAvailable = AnchorService.MAX_WOOD_PER_TREE - gameData.TotalWoodCollected;
         TotalLogAvailableText.text = totalLogAvailable + " Wood available.";
     }
 
@@ -122,6 +145,13 @@ public class GameScreen : MonoBehaviour
 
     private void OnChuckWoodSessionButtonClicked()
     {
-        AnchorService.Instance.ChopTree(!Web3.Rpc.NodeAddress.AbsoluteUri.Contains("localhost"));
+        ChuckWoodSessionButton.transform.localPosition = CharacterStartPosition;
+        ChuckWoodSessionButton.transform.DOLocalMove(CharacterStartPosition + Vector3.up * 10, 0.3f);
+        stopwatch.Stop();
+        stopwatch.Start();
+        AnchorService.Instance.ChopTree(!Web3.Rpc.NodeAddress.AbsoluteUri.Contains("localhost"), () =>
+        {
+            
+        });
     }
 }

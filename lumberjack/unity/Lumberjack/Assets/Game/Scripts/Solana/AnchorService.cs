@@ -25,16 +25,21 @@ public class AnchorService : MonoBehaviour
     public PublicKey AnchorProgramIdPubKey = new("MkabCfyUD6rBTaYHpgKBBpBo5qzWA2pK2hrGGKMurJt");
 
     public const int TIME_TO_REFILL_ENERGY = 60;
-    public const int MAX_ENERGY = 10;
+    public const int MAX_ENERGY = 100;
+    public const int MAX_WOOD_PER_TREE = 50;
 
     public static AnchorService Instance { get; private set; }
     public static Action<PlayerData> OnPlayerDataChanged;
     public static Action<GameData> OnGameDataChanged;
     public static Action OnInitialDataLoaded;
+
     public bool IsAnyBlockingTransactionInProgress => blockingTransactionsInProgress > 0;
     public bool IsAnyNonBlockingTransactionInProgress => nonBlockingTransactionsInProgress > 0;
     public PlayerData CurrentPlayerData;
     public GameData CurrentGameData;
+
+    public int BlockingTransactionsInProgress => blockingTransactionsInProgress;
+    public int NonBlockingTransactionsInProgress => nonBlockingTransactionsInProgress;
 
     private SessionWallet sessionWallet;
     private PublicKey PlayerDataPDA;
@@ -45,7 +50,7 @@ public class AnchorService : MonoBehaviour
     private int nonBlockingTransactionsInProgress;
     private long? sessionValidUntil;
     private string sessionKeyPassword = "inGame";
-    private string levelSeed = "gameData";
+    private string levelSeed = "level_2";
     private ushort transactionCounter = 0;
 
     private void Awake()
@@ -259,10 +264,8 @@ public class AnchorService : MonoBehaviour
 
         if (res.WasSuccessful && res.Result != null)
         {
-            Debug.Log("Transaction sent: " + res.RawRpcResponse);
-            Debug.Log("Confirming transaction: " + res.Result);
+            Debug.Log($"Transaction sent: {res.RawRpcResponse } signature: {res.Result}" );
             await Web3.Rpc.ConfirmTransaction(res.Result, Commitment.Confirmed);
-            Debug.Log("Confirm done");
         }
         else
         {
@@ -292,7 +295,7 @@ public class AnchorService : MonoBehaviour
         Debug.Log("Session closed");
     }
 
-    public async void ChopTree(bool useSession)
+    public async void ChopTree(bool useSession, Action onSuccess)
     {
         if (!Instance.IsSessionValid())
         {
@@ -320,19 +323,24 @@ public class AnchorService : MonoBehaviour
             transaction.FeePayer = sessionWallet.Account.PublicKey;
             chopTreeAccounts.Signer = sessionWallet.Account.PublicKey;
             chopTreeAccounts.SessionToken = sessionWallet.SessionTokenPDA;
-            var chopInstruction = LumberjackProgram.ChopTree(chopTreeAccounts, transactionCounter++, "gameData", AnchorProgramIdPubKey);
+            var chopInstruction = LumberjackProgram.ChopTree(chopTreeAccounts, levelSeed, transactionCounter++, AnchorProgramIdPubKey);
             transaction.Add(chopInstruction);
             Debug.Log("Sign and send chop tree with session");
-            await SendAndConfirmTransaction(sessionWallet, transaction, "Chop Tree with session.", isBlocking: false);
+            await SendAndConfirmTransaction(sessionWallet, transaction, "Chop Tree with session.", isBlocking: false, onSucccess: onSuccess);
         }
         else
         {
             transaction.FeePayer = Web3.Account.PublicKey;
             chopTreeAccounts.Signer = Web3.Account.PublicKey;
-            var chopInstruction = LumberjackProgram.ChopTree(chopTreeAccounts, transactionCounter++, "gameData", AnchorProgramIdPubKey);
+            var chopInstruction = LumberjackProgram.ChopTree(chopTreeAccounts, levelSeed, transactionCounter++, AnchorProgramIdPubKey);
             transaction.Add(chopInstruction);
             Debug.Log("Sign and send init without session");
-            await SendAndConfirmTransaction(Web3.Wallet, transaction, "Chop Tree without session.");
+            await SendAndConfirmTransaction(Web3.Wallet, transaction, "Chop Tree without session.", onSucccess: onSuccess);
+        }
+
+        if (CurrentGameData == null)
+        {
+            await SubscribeToGameDataUpdates();
         }
     }
 

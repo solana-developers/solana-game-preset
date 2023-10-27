@@ -4,8 +4,8 @@ pub use session_keys::{session_auth_or, Session, SessionError};
 pub mod constants;
 pub mod errors;
 pub mod instructions;
-pub use instructions::*;
 pub mod state;
+use instructions::*;
 
 declare_id!("MkabCfyUD6rBTaYHpgKBBpBo5qzWA2pK2hrGGKMurJt");
 
@@ -26,7 +26,7 @@ pub mod lumberjack {
         ctx.accounts.player.authority.key() == ctx.accounts.signer.key(),
         GameErrorCode::WrongAuthority
     )]
-    pub fn chop_tree(ctx: Context<ChopTree>, counter: u16, seed: String) -> Result<()> {
+    pub fn chop_tree(ctx: Context<ChopTree>, levelSeed: String, counter: u16) -> Result<()> {
         chop_tree::chop_tree(ctx, counter)
     }
 }

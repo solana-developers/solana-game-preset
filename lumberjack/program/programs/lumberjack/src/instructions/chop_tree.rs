@@ -25,7 +25,7 @@ pub fn chop_tree(mut ctx: Context<ChopTree>, _counter: u16) -> Result<()> {
 }
 
 #[derive(Accounts, Session)]
-//#[instruction(seed: String)]
+#[instruction(levelSeed: String)]
 pub struct ChopTree<'info> {
     #[session(
         // The ephemeral key pair signing the transaction
@@ -36,6 +36,7 @@ pub struct ChopTree<'info> {
     // Session Tokens are passed as optional accounts
     pub session_token: Option<Account<'info, SessionToken>>,
 
+    // There is one PlayerData account
     #[account(
         mut,
         seeds = [b"player".as_ref(), player.authority.key().as_ref()],
@@ -43,15 +44,13 @@ pub struct ChopTree<'info> {
     )]
     pub player: Account<'info, PlayerData>,
 
+    // There can be multiple levels the seed for the level is passed in the instruction
+    // First player starting a new level will pay for the account in the current setup
     #[account(
-        /*init_if_needed,
+        init_if_needed,
         payer = signer,
-        space = 200,
-        seeds = [_level_seed.as_bytes().as_ref()],
-        bump,*/
-        mut,
-        //seeds = [seed.as_bytes().as_ref()],
-        seeds = ["gameData".as_bytes()],
+        space = 1000,
+        seeds = [levelSeed.as_ref()],
         bump,
     )]
     pub game_data: Account<'info, GameData>,

@@ -35,20 +35,51 @@ dotnet anchorgen -i target/idl/lumberjack.json -o target/idl/Lumberjack.cs
 
 then copy the c# code into the unity project
 
+## Connect to local host
 To connect to local host from Unity add these links on the wallet holder game object: 
 http://localhost:8899
 ws://localhost:8900
 
+## Video walkthroughs
 Here are two videos explaining the energy logic and session keys: 
 Session keys:
 https://www.youtube.com/watch?v=oKvWZoybv7Y&t=17s&ab_channel=Solana
 Energy system: 
 https://www.youtube.com/watch?v=YYQtRCXJBgs&t=4s&ab_channel=Solana
 
+# Project structure
+The anchor project is structured like this:
+
+The entry point is in the lib.rs file. Here we define the program id and the instructions.
+The instructions are defined in the instructions folder.
+The state is defined in the state folder.
+
+So the calls arrive in the lib.rs file and are then forwarded to the instructions.
+The instructions then call the state to get the data and update it.
+
+```shell
+├── src
+│   ├── instructions
+│   │   ├── chop_tree.rs
+│   │   ├── init_player.rs
+│   │   └── update_energy.rs
+│   ├── state
+│   │   ├── game_data.rs
+│   │   ├── mod.rs
+│   │   └── player_data.rs
+│   ├── lib.rs
+│   └── constants.rs
+│   └── errors.rs
+
+```
+
+The project uses session keys (maintained by Magic Block) for auto approving transactions using an expiring token. 
+
 # Energy System  
 
 Many casual games in traditional gaming use energy systems. This is how you can build it on chain.
-Recommended to start with the Solana cookbook [Hello world example]([https://unity.com/](https://solanacookbook.com/gaming/hello-world.html#getting-started-with-your-first-solana-game)).  
+
+If you have no prior knowledge in solan and rust programming it is recommended to start with the Solana cookbook [Hello world example]([https://unity.com/](https://solanacookbook.com/gaming/hello-world.html#getting-started-with-your-first-solana-game)).  
 
 ## Anchor program 
 
@@ -66,34 +97,33 @@ We also have a value for wood which will store the wood the lumber jack chucks i
 pub fn init_player(ctx: Context<InitPlayer>) -> Result<()> {
     ctx.accounts.player.energy = MAX_ENERGY;
     ctx.accounts.player.last_login = Clock::get()?.unix_timestamp;
+    ctx.accounts.player.authority = ctx.accounts.signer.key();
     Ok(())
 }
 
-...
-
 #[derive(Accounts)]
-pub struct InitPlayer <'info> {
-    #[account( 
-        init, 
+pub struct InitPlayer<'info> {
+    #[account(
+        init,
         payer = signer,
-        space = 1000,
+        space = 1000, // 8+32+x+1+8+8+8 But taking 1000 to have space to expand easily.
         seeds = [b"player".as_ref(), signer.key().as_ref()],
         bump,
     )]
     pub player: Account<'info, PlayerData>,
+
+    #[account(
+        init_if_needed,
+        payer = signer,
+        space = 1000, // 8 + 8 for anchor account discriminator and the u64. Using 1000 to have space to expand easily.
+        seeds = [b"gameData".as_ref()],
+        bump,
+    )]
+    pub game_data: Account<'info, GameData>,
+
     #[account(mut)]
     pub signer: Signer<'info>,
     pub system_program: Program<'info, System>,
-}
-
-#[account]
-pub struct PlayerData {
-    pub name: String,
-    pub level: u8,
-    pub xp: u64,
-    pub wood: u64,
-    pub energy: u64,
-    pub last_login: i64
 }
 ```
 
@@ -194,24 +224,25 @@ useEffect(() => {
 In the java script client we can then perform the same logic and show a countdown timer for the player so that he knows when the next energy will be available:
 
 ```js
-useEffect(() => {
-    const interval = setInterval(async () => {
-        if (gameState == null || gameState.lastLogin == undefined || gameState.energy >= 10) {return;}
-        const lastLoginTime=gameState.lastLogin * 1000;
-        let timePassed = ((Date.now() - lastLoginTime) / 1000);
-        while (timePassed > TIME_TO_REFILL_ENERGY && gameState.energy < MAX_ENERGY) {
-            gameState.energy = (parseInt(gameState.energy) + 1);
-            gameState.lastLogin = parseInt(gameState.lastLogin) + TIME_TO_REFILL_ENERGY;
-            timePassed -= TIME_TO_REFILL_ENERGY;
-        }
-        setTimePassed(timePassed);
-        let nextEnergyIn = Math.floor(TIME_TO_REFILL_ENERGY -timePassed);
-        if (nextEnergyIn < TIME_TO_REFILL_ENERGY && nextEnergyIn > 0) {
-            setEnergyNextIn(nextEnergyIn);
-        } else {
-            setEnergyNextIn(0);
-        }
+const interval = setInterval(async () => {
+    if (gameState == null || gameState.lastLogin == undefined || gameState.energy >= 10) {
+        return;
+    }
 
+    const lastLoginTime = gameState.lastLogin * 1000;
+    const currentTime = Date.now();
+    const timePassed = (currentTime - lastLoginTime) / 1000;
+
+    while (timePassed > TIME_TO_REFILL_ENERGY && gameState.energy < MAX_ENERGY) {
+        gameState.energy++;
+        gameState.lastLogin += TIME_TO_REFILL_ENERGY;
+        timePassed -= TIME_TO_REFILL_ENERGY;
+    }
+
+    setTimePassed(timePassed);
+
+    const nextEnergyIn = Math.floor(TIME_TO_REFILL_ENERGY - timePassed);
+    setEnergyNextIn(nextEnergyIn > 0 ? nextEnergyIn : 0);
     }, 1000);
 
     return () => clearInterval(interval);

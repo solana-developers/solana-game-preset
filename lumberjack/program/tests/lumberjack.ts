@@ -47,15 +47,15 @@ describe("lumberjack", () => {
     console.log("Confirmed", tx);
 
     for (let i = 0; i < 11; i++) {
-      console.log("Chop instruction {}", i);
+      console.log(`Chop instruction ${i}`);
 
       tx = await program.methods
-      .chopTree(0, "gameData")
+      .chopTree("gameData", 0)
       .accounts(
         {
+          sessionToken: null,
           player: playerPDA,
           gameData: gameDataPDA,
-          sessionToken: null,
           systemProgram: anchor.web3.SystemProgram.programId,
           signer: localKeypair.publicKey
         }    
