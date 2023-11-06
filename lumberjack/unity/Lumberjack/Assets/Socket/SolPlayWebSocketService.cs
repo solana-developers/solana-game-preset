@@ -2,14 +2,15 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Numerics;
-using Avro.Util;
 using Frictionless;
 using NativeWebSocket;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Solana.Unity.Wallet;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 using WebSocketState = NativeWebSocket.WebSocketState;
 
 namespace Socket
@@ -104,7 +105,10 @@ namespace Socket
 
         private void Awake()
         {
-            ServiceFactory.RegisterSingleton(this);
+            if (ServiceFactory.Resolve<SolPlayWebSocketService>() == null)
+            {
+                ServiceFactory.RegisterSingleton(this);   
+            }
         }
 
         public WebSocketState GetState()

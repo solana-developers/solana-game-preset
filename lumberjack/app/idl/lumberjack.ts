@@ -51,9 +51,18 @@ export type Lumberjack = {
           "name": "signer",
           "isMut": true,
           "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [
+        {
+          "name": "levelSeed",
+          "type": "string"
+        },
         {
           "name": "counter",
           "type": "u16"
@@ -106,6 +115,10 @@ export type Lumberjack = {
           {
             "name": "lastLogin",
             "type": "i64"
+          },
+          {
+            "name": "lastId",
+            "type": "u16"
           }
         ]
       }
@@ -178,9 +191,18 @@ export const IDL: Lumberjack = {
           "name": "signer",
           "isMut": true,
           "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [
+        {
+          "name": "levelSeed",
+          "type": "string"
+        },
         {
           "name": "counter",
           "type": "u16"
@@ -233,6 +255,10 @@ export const IDL: Lumberjack = {
           {
             "name": "lastLogin",
             "type": "i64"
+          },
+          {
+            "name": "lastId",
+            "type": "u16"
           }
         ]
       }

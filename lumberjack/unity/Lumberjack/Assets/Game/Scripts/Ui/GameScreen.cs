@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using System.Diagnostics;
 using DG.Tweening;
 using Frictionless;
 using Lumberjack.Accounts;
@@ -8,8 +7,8 @@ using Solana.Unity.SDK;
 using Services;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using Debug = UnityEngine.Debug;
 
 /// <summary>
 /// This is the screen which handles the interaction with the anchor program.
@@ -34,7 +33,7 @@ public class GameScreen : MonoBehaviour
     
     private Vector3 CharacterStartPosition;
     private PlayerData currentPlayerData;
-    private Stopwatch stopwatch = new Stopwatch();
+    private GameData currentGameData;
     
     void Start()
     {
@@ -57,8 +56,13 @@ public class GameScreen : MonoBehaviour
         AnchorService.OnInitialDataLoaded -= UpdateContent;
     }
 
-    private void OnEnable()
+    private async void OnEnable()
     {
+        if (Web3.Account == null)
+        {
+            SceneManager.LoadScene("LoginScene");
+            return;
+        }
         StartCoroutine(UpdateNextEnergy());
     }
 
@@ -85,13 +89,7 @@ public class GameScreen : MonoBehaviour
     {
         if (currentPlayerData != null && currentPlayerData.Wood < playerData.Wood)
         {
-            stopwatch.Stop();
-            Debug.Log($"Last Transaction took: " + stopwatch.Elapsed.Milliseconds + "ms");
             ChuckWoodSessionButton.transform.DOLocalMove(CharacterStartPosition, 0.2f);
-            Tree.transform.DOKill();
-            Tree.transform.localScale = Vector3.one;
-            Tree.transform.DOPunchScale(Vector3.one * 0.1f, 0.1f);
-            Instantiate(ActionFx, ActionFxPosition.transform.position, Quaternion.identity);
         }
 
         currentPlayerData = playerData;
@@ -100,8 +98,17 @@ public class GameScreen : MonoBehaviour
 
     private void OnGameDataChanged(GameData gameData)
     {
+        if (currentGameData != null && currentGameData.TotalWoodCollected != gameData.TotalWoodCollected)
+        {
+            Tree.transform.DOKill();
+            Tree.transform.localScale = Vector3.one;
+            Tree.transform.DOPunchScale(Vector3.one * 0.1f, 0.1f);
+            Instantiate(ActionFx, ActionFxPosition.transform.position, Quaternion.identity);
+        }
+
         var totalLogAvailable = AnchorService.MAX_WOOD_PER_TREE - gameData.TotalWoodCollected;
         TotalLogAvailableText.text = totalLogAvailable + " Wood available.";
+        currentGameData = gameData;
     }
 
     private void UpdateContent()
@@ -147,11 +154,9 @@ public class GameScreen : MonoBehaviour
     {
         ChuckWoodSessionButton.transform.localPosition = CharacterStartPosition;
         ChuckWoodSessionButton.transform.DOLocalMove(CharacterStartPosition + Vector3.up * 10, 0.3f);
-        stopwatch.Stop();
-        stopwatch.Start();
         AnchorService.Instance.ChopTree(!Web3.Rpc.NodeAddress.AbsoluteUri.Contains("localhost"), () =>
         {
-            
+            // Do something with the result. The websocket update in onPlayerDataChanged will come a bit earlier
         });
     }
 }

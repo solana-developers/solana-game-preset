@@ -10,6 +10,7 @@ pub struct PlayerData {
     pub wood: u64,
     pub energy: u64,
     pub last_login: i64,
+    pub last_id: u16,
 }
 
 impl PlayerData {

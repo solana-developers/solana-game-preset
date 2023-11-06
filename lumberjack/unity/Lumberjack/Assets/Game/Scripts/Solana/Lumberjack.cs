@@ -64,6 +64,8 @@ namespace Lumberjack
 
             public long LastLogin { get; set; }
 
+            public ushort LastId { get; set; }
+
             public static PlayerData Deserialize(ReadOnlySpan<byte> _data)
             {
                 int offset = 0;
@@ -89,6 +91,8 @@ namespace Lumberjack
                 offset += 8;
                 result.LastLogin = _data.GetS64(offset);
                 offset += 8;
+                result.LastId = _data.GetU16(offset);
+                offset += 2;
                 return result;
             }
         }

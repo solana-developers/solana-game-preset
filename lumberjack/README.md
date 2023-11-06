@@ -165,29 +165,29 @@ const TIME_TO_REFILL_ENERGY: i64 = 60;
 const MAX_ENERGY: u64 = 10;
 
 pub fn update_energy(&mut self) -> Result<()> {
-        // Get the current timestamp
-        let current_timestamp = Clock::get()?.unix_timestamp;
+    // Get the current timestamp
+    let current_timestamp = Clock::get()?.unix_timestamp;
 
-        // Calculate the time passed since the last login
-        let mut time_passed: i64 = current_timestamp - self.last_login;
+    // Calculate the time passed since the last login
+    let mut time_passed: i64 = current_timestamp - self.last_login;
 
-        // Calculate the time spent refilling energy
-        let mut time_spent = 0;
+    // Calculate the time spent refilling energy
+    let mut time_spent = 0;
 
-        while time_passed >= TIME_TO_REFILL_ENERGY && self.energy < MAX_ENERGY {
-            self.energy += 1;
-            time_passed -= TIME_TO_REFILL_ENERGY;
-            time_spent += TIME_TO_REFILL_ENERGY;
-        }
-
-        if self.energy >= MAX_ENERGY {
-            self.last_login = current_timestamp;
-        } else {
-            self.last_login += time_spent;
-        }
-
-        Ok(())
+    while time_passed >= TIME_TO_REFILL_ENERGY && self.energy < MAX_ENERGY {
+        self.energy += 1;
+        time_passed -= TIME_TO_REFILL_ENERGY;
+        time_spent += TIME_TO_REFILL_ENERGY;
     }
+
+    if self.energy >= MAX_ENERGY {
+        self.last_login = current_timestamp;
+    } else {
+        self.last_login += time_spent;
+    }
+
+    Ok(())
+}
 ```
 
 ## Js client 
@@ -255,6 +255,17 @@ const interval = setInterval(async () => {
 </div>)} 
 
   ```
+
+## Unity client 
+
+In the Unity client everything interesting happens in the AnchorService. 
+To generate the client code you can follow the instructions here: https://solanacookbook.com/gaming/porting-anchor-to-unity.html#generating-the-client
+
+```bash
+
+
+```
+
 
 ### Session keys
 

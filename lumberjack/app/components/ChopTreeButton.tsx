@@ -4,7 +4,7 @@ import { Button, HStack, VStack } from "@chakra-ui/react"
 import { useConnection, useWallet } from "@solana/wallet-adapter-react"
 import { useSessionWallet } from "@magicblock-labs/gum-react-sdk"
 import { useGameState } from "@/contexts/GameStateProvider"
-import { gameDataPDA, program } from "@/utils/anchor"
+import { GAME_DATA_SEED, gameDataPDA, program } from "@/utils/anchor"
 
 const ChopTreeButton = () => {
   const { publicKey, sendTransaction } = useWallet()
@@ -22,7 +22,7 @@ const ChopTreeButton = () => {
 
     try {
       const transaction = await program.methods
-        .chopTree(transactionCounter)
+        .chopTree(GAME_DATA_SEED, transactionCounter)
         .accounts({
           player: playerDataPDA,
           gameData: gameDataPDA,
@@ -52,7 +52,7 @@ const ChopTreeButton = () => {
 
     try {
       const transaction = await program.methods
-        .chopTree(transactionCounter)
+        .chopTree(GAME_DATA_SEED, transactionCounter)
         .accounts({
           player: playerDataPDA,
           gameData: gameDataPDA,

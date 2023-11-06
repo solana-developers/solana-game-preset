@@ -1,18 +1,24 @@
 import { Program, IdlAccounts, BN } from "@coral-xyz/anchor"
 import { Lumberjack, IDL } from "../idl/lumberjack"
 import { clusterApiUrl, Connection, PublicKey } from "@solana/web3.js"
+import { WrappedConnection } from "./wrappedConnection";
 
-// Create a connection to the devnet cluster
-const connection = new Connection(clusterApiUrl("devnet"), {
-  commitment: "confirmed",
-})
+export const CONNECTION = new WrappedConnection(process.env.NEXT_PUBLIC_RPC ? process.env.NEXT_PUBLIC_RPC : 'https://rpc.magicblock.app/devnet',  {
+  wsEndpoint: process.env.NEXT_PUBLIC_WSS_RPC ? process.env.NEXT_PUBLIC_WSS_RPC : "wss://rpc.magicblock.app/devnet",
+  commitment: 'confirmed' 
+});
+
+export const METAPLEX_READAPI = "https://devnet.helius-rpc.com/?api-key=78065db3-87fb-431c-8d43-fcd190212125";
+
+// Here you can basically use what ever seed you want. For example one per level or city or whatever.
+export const GAME_DATA_SEED = "gameData";
 
 // Lumberjack game program ID
 const programId = new PublicKey("MkabCfyUD6rBTaYHpgKBBpBo5qzWA2pK2hrGGKMurJt")
 
 // Create the program interface using the idl, program ID, and provider
 export const program = new Program<Lumberjack>(IDL, programId, {
-  connection,
+  connection: CONNECTION,
 })
 
 export const [gameDataPDA] = PublicKey.findProgramAddressSync(

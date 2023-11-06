@@ -6,6 +6,7 @@ public class InteractionBlocker : MonoBehaviour
     public GameObject BlockingSpinner;
     public GameObject NonBlocking;
     public TextMeshProUGUI CurrentTransactionsInProgress;
+    public TextMeshProUGUI LastTransactionTimeText;
     
     void Update()
     {
@@ -13,5 +14,6 @@ public class InteractionBlocker : MonoBehaviour
         NonBlocking.gameObject.SetActive(AnchorService.Instance.IsAnyNonBlockingTransactionInProgress);
         CurrentTransactionsInProgress.text = (AnchorService.Instance.BlockingTransactionsInProgress +
                                              AnchorService.Instance.NonBlockingTransactionsInProgress).ToString();
+        LastTransactionTimeText.text = $"Last took: {AnchorService.Instance.LastTransactionTimeInMs}ms";
     }
 }

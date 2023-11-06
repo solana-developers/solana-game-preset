@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
 using Frictionless;
@@ -19,6 +20,7 @@ using Solana.Unity.Wallet;
 using Services;
 using Socket;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 public class AnchorService : MonoBehaviour
 {
@@ -40,6 +42,7 @@ public class AnchorService : MonoBehaviour
 
     public int BlockingTransactionsInProgress => blockingTransactionsInProgress;
     public int NonBlockingTransactionsInProgress => nonBlockingTransactionsInProgress;
+    public long LastTransactionTimeInMs => lastTransactionTimeInMs;
 
     private SessionWallet sessionWallet;
     private PublicKey PlayerDataPDA;
@@ -52,7 +55,9 @@ public class AnchorService : MonoBehaviour
     private string sessionKeyPassword = "inGame";
     private string levelSeed = "level_2";
     private ushort transactionCounter = 0;
-
+    private Dictionary<ushort, Stopwatch> stopWatches = new Dictionary<ushort, Stopwatch>();
+    private long lastTransactionTimeInMs;
+    
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -116,7 +121,7 @@ public class AnchorService : MonoBehaviour
             var result = await Web3.Instance.WalletBase.RequestAirdrop(commitment: Commitment.Confirmed);
             if (!result.WasSuccessful)
             {
-                Debug.Log("Airdrop failed.");
+                Debug.Log("Airdrop failed. You can go to faucet.solana.com and request sol for this key: " + Web3.Instance.WalletBase.Account.PublicKey);
             }
         }
     }
@@ -142,9 +147,8 @@ public class AnchorService : MonoBehaviour
             {
                 CurrentPlayerData = playerData.ParsedResult;
                 OnPlayerDataChanged?.Invoke(playerData.ParsedResult);
+                _isInitialized = true;
             }
-
-            _isInitialized = true;
         }
         catch (Exception e)
         {
@@ -161,6 +165,8 @@ public class AnchorService : MonoBehaviour
     private void OnRecievedPlayerDataUpdate(SolPlayWebSocketService.MethodResult result)
     {
         PlayerData playerData = PlayerData.Deserialize(result.result.value.dataBytes);
+        stopWatches[playerData.LastId].Stop();
+        lastTransactionTimeInMs = stopWatches[playerData.LastId].ElapsedMilliseconds;
         Debug.Log($"Socket Message: Player has  {playerData.Wood} wood now.");
         CurrentPlayerData = playerData;
         OnPlayerDataChanged?.Invoke(playerData);
@@ -318,12 +324,16 @@ public class AnchorService : MonoBehaviour
             SystemProgram = SystemProgram.ProgramIdKey
         };
 
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
+        stopWatches[++transactionCounter] = stopWatch;
+        
         if (useSession)
         {
             transaction.FeePayer = sessionWallet.Account.PublicKey;
             chopTreeAccounts.Signer = sessionWallet.Account.PublicKey;
             chopTreeAccounts.SessionToken = sessionWallet.SessionTokenPDA;
-            var chopInstruction = LumberjackProgram.ChopTree(chopTreeAccounts, levelSeed, transactionCounter++, AnchorProgramIdPubKey);
+            var chopInstruction = LumberjackProgram.ChopTree(chopTreeAccounts, levelSeed, transactionCounter, AnchorProgramIdPubKey);
             transaction.Add(chopInstruction);
             Debug.Log("Sign and send chop tree with session");
             await SendAndConfirmTransaction(sessionWallet, transaction, "Chop Tree with session.", isBlocking: false, onSucccess: onSuccess);
@@ -332,7 +342,7 @@ public class AnchorService : MonoBehaviour
         {
             transaction.FeePayer = Web3.Account.PublicKey;
             chopTreeAccounts.Signer = Web3.Account.PublicKey;
-            var chopInstruction = LumberjackProgram.ChopTree(chopTreeAccounts, levelSeed, transactionCounter++, AnchorProgramIdPubKey);
+            var chopInstruction = LumberjackProgram.ChopTree(chopTreeAccounts, levelSeed, transactionCounter, AnchorProgramIdPubKey);
             transaction.Add(chopInstruction);
             Debug.Log("Sign and send init without session");
             await SendAndConfirmTransaction(Web3.Wallet, transaction, "Chop Tree without session.", onSucccess: onSuccess);
