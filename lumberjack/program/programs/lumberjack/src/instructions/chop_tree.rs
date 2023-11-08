@@ -26,7 +26,7 @@ pub fn chop_tree(mut ctx: Context<ChopTree>, counter: u16) -> Result<()> {
 }
 
 #[derive(Accounts, Session)]
-#[instruction(levelSeed: String)]
+#[instruction(level_seed: String)]
 pub struct ChopTree<'info> {
     #[session(
         // The ephemeral key pair signing the transaction
@@ -51,7 +51,7 @@ pub struct ChopTree<'info> {
         init_if_needed,
         payer = signer,
         space = 1000,
-        seeds = [levelSeed.as_ref()],
+        seeds = [level_seed.as_ref()],
         bump,
     )]
     pub game_data: Account<'info, GameData>,

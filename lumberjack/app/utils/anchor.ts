@@ -34,4 +34,4 @@ export type GameData = IdlAccounts<Lumberjack>["gameData"]
 export const TIME_TO_REFILL_ENERGY: BN = new BN(60)
 export const MAX_ENERGY = 100
 export const ENERGY_PER_TICK: BN = new BN(1)
-export const TOTAL_WOOD_AVAILABLE: BN = new BN(50)
+export const TOTAL_WOOD_AVAILABLE: BN = new BN(100000)

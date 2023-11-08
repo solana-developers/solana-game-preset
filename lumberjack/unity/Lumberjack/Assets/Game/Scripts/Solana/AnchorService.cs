@@ -28,7 +28,7 @@ public class AnchorService : MonoBehaviour
 
     public const int TIME_TO_REFILL_ENERGY = 60;
     public const int MAX_ENERGY = 100;
-    public const int MAX_WOOD_PER_TREE = 50;
+    public const int MAX_WOOD_PER_TREE = 100000;
 
     public static AnchorService Instance { get; private set; }
     public static Action<PlayerData> OnPlayerDataChanged;

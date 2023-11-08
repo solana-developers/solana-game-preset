@@ -158,8 +158,6 @@ namespace Socket
             websocket.OnClose += OnWebSocketClosed;
             websocket.OnMessage += websocketOnOnMessage();
             websocket.Connect();
-
-            Debug.Log("Socket connect done");
         }
 
         private WebSocketMessageEventHandler websocketOnOnMessage()

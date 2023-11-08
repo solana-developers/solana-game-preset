@@ -56,8 +56,9 @@ public class GameScreen : MonoBehaviour
         AnchorService.OnInitialDataLoaded -= UpdateContent;
     }
 
-    private async void OnEnable()
+    private void OnEnable()
     {
+        // In case we are not logged in yet load the LoginScene
         if (Web3.Account == null)
         {
             SceneManager.LoadScene("LoginScene");
@@ -68,6 +69,7 @@ public class GameScreen : MonoBehaviour
 
     private async void OnInitGameDataButtonClicked()
     {
+        // On local host we probably dont have the session key progeam, but can just sign with the in game wallet instead. 
         await AnchorService.Instance.InitAccounts(!Web3.Rpc.NodeAddress.AbsoluteUri.Contains("localhost"));
     }
 

@@ -26,7 +26,7 @@ pub mod lumberjack {
         ctx.accounts.player.authority.key() == ctx.accounts.signer.key(),
         GameErrorCode::WrongAuthority
     )]
-    pub fn chop_tree(ctx: Context<ChopTree>, levelSeed: String, counter: u16) -> Result<()> {
+    pub fn chop_tree(ctx: Context<ChopTree>, _level_seed: String, counter: u16) -> Result<()> {
         chop_tree::chop_tree(ctx, counter)
     }
 }
