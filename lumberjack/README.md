@@ -1,41 +1,72 @@
-This game uses gum session keys for auto approval of transactions. Its ment as a starter game for on chain game. 
-There is a js and a unity client for this game.
+# Solana Game Preset
+
+This game is ment as a starter game for on chain games. 
+There is a js and a unity client for this game and both are talking to a solana anchor program.
+
+This game uses gum session keys for auto approval of transactions. 
 Note that neither the program nor session keys are audited. Use at your own risk. 
 
-How to run this example:
+# How to run this example
+
+## Quickstart
+
+The unity client and the js client are both connected to the same program and should work out of the box connecting to the already deployed program. 
+
+### Unity 
+Open the Unity project with Unity Version 2021.3.32.f1 (or similar), open the GameScene or LoginScene and hit play.
+Use the editor login button in the bottom left. If you cant get devnet sol you can copy your address from the console and use the faucet here: https://faucet.solana.com/ to request some sol.
+
+### Js Client
+To start the js client open the project in visual studio code and run: 
+
+```bash
+cd app 
+yarn install 
+yarn dev
+```
+
+To start changing the program and connecting to your own program follow the steps below.
+
+## Installing Solana dependencies
+
 Follow the installation here: https://www.anchor-lang.com/docs/installation
 Install the latest 1.16 solana version (1.17 is not supported yet)
 sh -c "$(curl -sSfL https://release.solana.com/v1.16.18/install)"
 
 Anchor program
 1. Install the [Anchor CLI](https://project-serum.github.io/anchor/getting-started/installation.html)
-2. `cd lumberjack` `cd program` to end the program directory
+2. `cd program` to end the program directory
 3. Run `anchor build` to build the program
 4. Run `anchor deploy` to deploy the program
-5. Copy the program id from the terminal into the lib.rs, anchor.toml and within the unity project in the LumberjackService and if you use js in the anchor.ts file
+5. Copy the program id from the terminal into the lib.rs, anchor.toml and within the unity project in the AnchorService and if you use js in the anchor.ts file
 6. Build and deploy again
 
 Next js client
 1. Install [Node.js](https://nodejs.org/en/download/)
 2. Copy the program id into app/utils/anchor.ts
-2. `cd lumberjack` `cd app` to end the app directory
+2. `cd app` to end the app directory
 3. Run `yarn install` to install node modules
 4. Run `yarn dev` to start the client
-5. After doing changes to the anchor program make sure to copy over the types from the program into the client so you can use them
+5. After doing changes to the anchor program make sure to copy over the types from the program into the client so you can use them. You can find the js types in the target/idl folder.
 
 Unity client 
 1. Install [Unity](https://unity.com/)
-2. Open the lumberjack scene
+2. Open the MainScene
 3. Hit play
 4. After doing changes to the anchor program make sure to regenerate the C# client: https://solanacookbook.com/gaming/porting-anchor-to-unity.html#generating-the-client
 Its done like this (after you have build the program): 
+
+```bash
 cd program 
 dotnet tool install Solana.Unity.Anchor.Tool <- run once
 dotnet anchorgen -i target/idl/lumberjack.json -o target/idl/Lumberjack.cs
+```
 
-then copy the c# code into the unity project
+(Replace lumberjack with the name of your program)
 
-## Connect to local host
+then copy the c# code into the unity project.
+
+## Connect to local host (optional)
 To connect to local host from Unity add these links on the wallet holder game object: 
 http://localhost:8899
 ws://localhost:8900
@@ -127,7 +158,7 @@ pub struct InitPlayer<'info> {
 }
 ```
 
-### Choping trees
+### Chopping trees
 
 Then whenever the player calls the chop_tree instruction we will check if the player has enough energy and reward him with one wood. 
 
@@ -262,10 +293,10 @@ In the Unity client everything interesting happens in the AnchorService.
 To generate the client code you can follow the instructions here: https://solanacookbook.com/gaming/porting-anchor-to-unity.html#generating-the-client
 
 ```bash
-
-
+cd program 
+dotnet tool install Solana.Unity.Anchor.Tool <- run once
+dotnet anchorgen -i target/idl/lumberjack.json -o target/idl/Lumberjack.cs
 ```
-
 
 ### Session keys
 
