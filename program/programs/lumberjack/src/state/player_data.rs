@@ -59,7 +59,7 @@ impl PlayerData {
                 msg!("Total wood reached!");
             }
         };
-        self.energy -= 1;
+        //self.energy -= 1;
         Ok(())
     }
 }
