@@ -26,6 +26,7 @@ public class AnchorService : MonoBehaviour
 {
     public PublicKey AnchorProgramIdPubKey = new("MkabCfyUD6rBTaYHpgKBBpBo5qzWA2pK2hrGGKMurJt");
 
+    // Needs to be the same constants as in the anchor program
     public const int TIME_TO_REFILL_ENERGY = 60;
     public const int MAX_ENERGY = 100;
     public const int MAX_WOOD_PER_TREE = 100000;
@@ -37,8 +38,8 @@ public class AnchorService : MonoBehaviour
 
     public bool IsAnyBlockingTransactionInProgress => blockingTransactionsInProgress > 0;
     public bool IsAnyNonBlockingTransactionInProgress => nonBlockingTransactionsInProgress > 0;
-    public PlayerData CurrentPlayerData;
-    public GameData CurrentGameData;
+    public PlayerData CurrentPlayerData { get; private set; }
+    public GameData CurrentGameData { get; private set; }
 
     public int BlockingTransactionsInProgress => blockingTransactionsInProgress;
     public int NonBlockingTransactionsInProgress => nonBlockingTransactionsInProgress;
@@ -48,14 +49,16 @@ public class AnchorService : MonoBehaviour
     private PublicKey PlayerDataPDA;
     private PublicKey GameDataPDA;
     private bool _isInitialized;
-    private LumberjackClient lumberjackClient;
+    private LumberjackClient anchorClient;
     private int blockingTransactionsInProgress;
     private int nonBlockingTransactionsInProgress;
     private long? sessionValidUntil;
-    private string sessionKeyPassword = "inGame";
+    private string sessionKeyPassword = "inGame"; // Would be better to generate and save in playerprefs
     private string levelSeed = "level_2";
     private ushort transactionCounter = 0;
-    private Dictionary<ushort, Stopwatch> stopWatches = new Dictionary<ushort, Stopwatch>();
+    
+    // Only used to show transaction speed. Feel free to remove
+    private Dictionary<ushort, Stopwatch> stopWatches = new ();
     private long lastTransactionTimeInMs;
     
     private void Awake()
@@ -93,7 +96,7 @@ public class AnchorService : MonoBehaviour
 
         FindPDAs(account);
 
-        lumberjackClient = new LumberjackClient(Web3.Rpc, Web3.WsRpc, AnchorProgramIdPubKey);
+        anchorClient = new LumberjackClient(Web3.Rpc, Web3.WsRpc, AnchorProgramIdPubKey);
 
         await SubscribeToPlayerDataUpdates();
         await SubscribeToGameDataUpdates();
@@ -115,7 +118,7 @@ public class AnchorService : MonoBehaviour
     private static async Task RequestAirdropIfSolValueIsLow()
     {
         var solBalance = await Web3.Instance.WalletBase.GetBalance();
-        if (solBalance < 20000)
+        if (solBalance < 0.8f)
         {
             Debug.Log("Not enough sol. Requesting airdrop");
             var result = await Web3.Instance.WalletBase.RequestAirdrop(commitment: Commitment.Confirmed);
@@ -133,7 +136,7 @@ public class AnchorService : MonoBehaviour
 
     private long GetSessionKeysEndTime()
     {
-        return DateTimeOffset.UtcNow.AddMinutes(3).ToUnixTimeSeconds();
+        return DateTimeOffset.UtcNow.AddDays(6).ToUnixTimeSeconds();
     }
 
     private async Task SubscribeToPlayerDataUpdates()
@@ -142,7 +145,7 @@ public class AnchorService : MonoBehaviour
 
         try
         {
-            playerData = await lumberjackClient.GetPlayerDataAsync(PlayerDataPDA, Commitment.Confirmed);
+            playerData = await anchorClient.GetPlayerDataAsync(PlayerDataPDA, Commitment.Confirmed);
             if (playerData.ParsedResult != null)
             {
                 CurrentPlayerData = playerData.ParsedResult;
@@ -178,7 +181,7 @@ public class AnchorService : MonoBehaviour
 
         try
         {
-            gameData = await lumberjackClient.GetGameDataAsync(GameDataPDA, Commitment.Confirmed);
+            gameData = await anchorClient.GetGameDataAsync(GameDataPDA, Commitment.Confirmed);
             if (gameData.ParsedResult != null)
             {
                 CurrentGameData = gameData.ParsedResult;
