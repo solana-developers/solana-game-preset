@@ -26,7 +26,12 @@ export type Lumberjack = {
           "isSigner": false
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "levelSeed",
+          "type": "string"
+        }
+      ]
     },
     {
       "name": "chopTree",
@@ -166,7 +171,12 @@ export const IDL: Lumberjack = {
           "isSigner": false
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "levelSeed",
+          "type": "string"
+        }
+      ]
     },
     {
       "name": "chopTree",
