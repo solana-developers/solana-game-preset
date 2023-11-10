@@ -143,6 +143,11 @@ public class AnchorService : MonoBehaviour
     {
         AccountResultWrapper<PlayerData> playerData = null;
 
+        await anchorClient.SubscribePlayerDataAsync(PlayerDataPDA, (state, value, arg3) =>
+        {
+            Debug.Log("Recieved plyer data");
+        });
+        
         try
         {
             playerData = await anchorClient.GetPlayerDataAsync(PlayerDataPDA, Commitment.Confirmed);
@@ -168,9 +173,9 @@ public class AnchorService : MonoBehaviour
     private void OnRecievedPlayerDataUpdate(SolPlayWebSocketService.MethodResult result)
     {
         PlayerData playerData = PlayerData.Deserialize(result.result.value.dataBytes);
+        Debug.Log($"Socket Message: Player has {playerData.Wood} wood now.");
         stopWatches[playerData.LastId].Stop();
         lastTransactionTimeInMs = stopWatches[playerData.LastId].ElapsedMilliseconds;
-        Debug.Log($"Socket Message: Player has  {playerData.Wood} wood now.");
         CurrentPlayerData = playerData;
         OnPlayerDataChanged?.Invoke(playerData);
     }
@@ -224,10 +229,10 @@ public class AnchorService : MonoBehaviour
         accounts.Signer = Web3.Account;
         accounts.SystemProgram = SystemProgram.ProgramIdKey;
 
-        var initTx = LumberjackProgram.InitPlayer(accounts, AnchorProgramIdPubKey);
+        var initTx = LumberjackProgram.InitPlayer(accounts, levelSeed, AnchorProgramIdPubKey);
         tx.Add(initTx);
 
-        if (useSession)
+        if (true)
         {
             if (!(await IsSessionTokenInitialized()))
             {
@@ -313,6 +318,11 @@ public class AnchorService : MonoBehaviour
             return;
         }
 
+        // only for time tracking feel free to remove 
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
+        stopWatches[++transactionCounter] = stopWatch;
+
         var transaction = new Transaction()
         {
             FeePayer = Web3.Account,
@@ -327,10 +337,6 @@ public class AnchorService : MonoBehaviour
             SystemProgram = SystemProgram.ProgramIdKey
         };
 
-        var stopWatch = new Stopwatch();
-        stopWatch.Start();
-        stopWatches[++transactionCounter] = stopWatch;
-        
         if (useSession)
         {
             transaction.FeePayer = sessionWallet.Account.PublicKey;

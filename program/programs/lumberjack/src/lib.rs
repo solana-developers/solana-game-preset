@@ -14,7 +14,7 @@ pub mod lumberjack {
 
     use super::*;
 
-    pub fn init_player(ctx: Context<InitPlayer>) -> Result<()> {
+    pub fn init_player(ctx: Context<InitPlayer>, _level_seed: String) -> Result<()> {
         init_player::init_player(ctx)
     }
 
@@ -27,6 +27,6 @@ pub mod lumberjack {
         GameErrorCode::WrongAuthority
     )]
     pub fn chop_tree(ctx: Context<ChopTree>, _level_seed: String, counter: u16) -> Result<()> {
-        chop_tree::chop_tree(ctx, counter)
+        chop_tree::chop_tree(ctx, counter, 1)
     }
 }

@@ -7,6 +7,7 @@ import {
   MAX_ENERGY,
   TIME_TO_REFILL_ENERGY,
   GameData,
+  GAME_DATA_SEED,
 } from "@/utils/anchor"
 import { BN } from "@coral-xyz/anchor"
 
@@ -71,7 +72,7 @@ export const GameStateProvider = ({
       return
     }
     const [pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("gameData", "utf8")],
+      [Buffer.from(GAME_DATA_SEED, "utf8")],
       program.programId
     )
     setGameDataPDA(gameDataPDA)

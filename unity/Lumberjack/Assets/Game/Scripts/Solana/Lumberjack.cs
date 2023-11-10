@@ -177,15 +177,21 @@ namespace Lumberjack
             return res;
         }
 
-        public async Task<RequestResult<string>> SendInitPlayerAsync(InitPlayerAccounts accounts, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
+        public async Task<RequestResult<string>> SendInitPlayerAsync(InitPlayerAccounts accounts, string levelSeed, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
         {
-            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.LumberjackProgram.InitPlayer(accounts, programId);
+            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.LumberjackProgram.InitPlayer(accounts, levelSeed, programId);
             return await SignAndSendTransaction(instr, feePayer, signingCallback);
         }
 
         public async Task<RequestResult<string>> SendChopTreeAsync(ChopTreeAccounts accounts, string levelSeed, ushort counter, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
         {
             Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.LumberjackProgram.ChopTree(accounts, levelSeed, counter, programId);
+            return await SignAndSendTransaction(instr, feePayer, signingCallback);
+        }
+
+        public async Task<RequestResult<string>> SendSuperChopTreeAsync(SuperChopTreeAccounts accounts, string levelSeed, ushort counter, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
+        {
+            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.LumberjackProgram.SuperChopTree(accounts, levelSeed, counter, programId);
             return await SignAndSendTransaction(instr, feePayer, signingCallback);
         }
 
@@ -221,9 +227,22 @@ namespace Lumberjack
             public PublicKey SystemProgram { get; set; }
         }
 
+        public class SuperChopTreeAccounts
+        {
+            public PublicKey SessionToken { get; set; }
+
+            public PublicKey Player { get; set; }
+
+            public PublicKey GameData { get; set; }
+
+            public PublicKey Signer { get; set; }
+
+            public PublicKey SystemProgram { get; set; }
+        }
+
         public static class LumberjackProgram
         {
-            public static Solana.Unity.Rpc.Models.TransactionInstruction InitPlayer(InitPlayerAccounts accounts, PublicKey programId)
+            public static Solana.Unity.Rpc.Models.TransactionInstruction InitPlayer(InitPlayerAccounts accounts, string levelSeed, PublicKey programId)
             {
                 List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
                 {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Player, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameData, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Signer, true), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false)};
@@ -231,6 +250,7 @@ namespace Lumberjack
                 int offset = 0;
                 _data.WriteU64(4819994211046333298UL, offset);
                 offset += 8;
+                offset += _data.WriteBorshString(levelSeed, offset);
                 byte[] resultData = new byte[offset];
                 Array.Copy(_data, resultData, offset);
                 return new Solana.Unity.Rpc.Models.TransactionInstruction{Keys = keys, ProgramId = programId.KeyBytes, Data = resultData};
@@ -243,6 +263,22 @@ namespace Lumberjack
                 byte[] _data = new byte[1200];
                 int offset = 0;
                 _data.WriteU64(2027946759707441272UL, offset);
+                offset += 8;
+                offset += _data.WriteBorshString(levelSeed, offset);
+                _data.WriteU16(counter, offset);
+                offset += 2;
+                byte[] resultData = new byte[offset];
+                Array.Copy(_data, resultData, offset);
+                return new Solana.Unity.Rpc.Models.TransactionInstruction{Keys = keys, ProgramId = programId.KeyBytes, Data = resultData};
+            }
+
+            public static Solana.Unity.Rpc.Models.TransactionInstruction SuperChopTree(SuperChopTreeAccounts accounts, string levelSeed, ushort counter, PublicKey programId)
+            {
+                List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
+                {Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SessionToken == null ? programId : accounts.SessionToken, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Player, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameData, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Signer, true), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false)};
+                byte[] _data = new byte[1200];
+                int offset = 0;
+                _data.WriteU64(1750819471606152907UL, offset);
                 offset += 8;
                 offset += _data.WriteBorshString(levelSeed, offset);
                 _data.WriteU16(counter, offset);

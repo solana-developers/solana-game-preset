@@ -59,7 +59,14 @@ impl PlayerData {
                 msg!("Total wood reached!");
             }
         };
-        //self.energy -= 1;
+        match self.energy.checked_sub(amount) {
+            Some(v) => {
+                self.energy = v;
+            }
+            None => {
+                self.energy = 0;
+            }
+        };
         Ok(())
     }
 }

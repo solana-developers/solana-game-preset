@@ -4,18 +4,18 @@ use crate::state::player_data::PlayerData;
 use anchor_lang::prelude::*;
 use session_keys::{Session, SessionToken};
 
-pub fn chop_tree(mut ctx: Context<ChopTree>, counter: u16) -> Result<()> {
+pub fn chop_tree(mut ctx: Context<ChopTree>, counter: u16, amount: u64) -> Result<()> {
     let account: &mut &mut ChopTree<'_> = &mut ctx.accounts;
     account.player.update_energy()?;
     account.player.print()?;
 
-    if account.player.energy == 0 {
+    if account.player.energy < amount {
         return err!(GameErrorCode::NotEnoughEnergy);
     }
 
     account.player.last_id = counter;
-    account.player.chop_tree(1)?;
-    account.game_data.on_tree_chopped(1)?;
+    account.player.chop_tree(amount)?;
+    account.game_data.on_tree_chopped(amount)?;
 
     msg!(
         "You chopped a tree and got 1 wood. You have {} wood and {} energy left.",

@@ -11,7 +11,7 @@ export const CONNECTION = new WrappedConnection(process.env.NEXT_PUBLIC_RPC ? pr
 export const METAPLEX_READAPI = "https://devnet.helius-rpc.com/?api-key=78065db3-87fb-431c-8d43-fcd190212125";
 
 // Here you can basically use what ever seed you want. For example one per level or city or whatever.
-export const GAME_DATA_SEED = "gameData";
+export const GAME_DATA_SEED = "level_2";
 
 // Lumberjack game program ID
 const programId = new PublicKey("MkabCfyUD6rBTaYHpgKBBpBo5qzWA2pK2hrGGKMurJt")
@@ -22,7 +22,7 @@ export const program = new Program<Lumberjack>(IDL, programId, {
 })
 
 export const [gameDataPDA] = PublicKey.findProgramAddressSync(
-  [Buffer.from("gameData", "utf8")],
+  [Buffer.from(GAME_DATA_SEED, "utf8")],
   program.programId
 )
 
