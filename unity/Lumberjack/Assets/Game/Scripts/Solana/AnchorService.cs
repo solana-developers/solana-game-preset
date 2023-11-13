@@ -75,11 +75,6 @@ public class AnchorService : MonoBehaviour
         Web3.OnLogin += OnLogin;
     }
 
-    private void Start()
-    {
-        ServiceFactory.Resolve<SolPlayWebSocketService>().Connect(Web3.Instance.webSocketsRpc);
-    }
-
     private void OnDestroy()
     {
         Web3.OnLogin -= OnLogin;
@@ -143,11 +138,6 @@ public class AnchorService : MonoBehaviour
     {
         AccountResultWrapper<PlayerData> playerData = null;
 
-        await anchorClient.SubscribePlayerDataAsync(PlayerDataPDA, (state, value, arg3) =>
-        {
-            Debug.Log("Recieved plyer data");
-        });
-        
         try
         {
             playerData = await anchorClient.GetPlayerDataAsync(PlayerDataPDA, Commitment.Confirmed);
@@ -165,14 +155,15 @@ public class AnchorService : MonoBehaviour
 
         if (playerData != null)
         {
-            ServiceFactory.Resolve<SolPlayWebSocketService>()
-                .SubscribeToPubKeyData(PlayerDataPDA, OnRecievedPlayerDataUpdate);
+            await anchorClient.SubscribePlayerDataAsync(PlayerDataPDA, (state, value, playerData) =>
+            {
+                OnReceivedPlayerDataUpdate(playerData);
+            }, Commitment.Processed);
         }
     }
 
-    private void OnRecievedPlayerDataUpdate(SolPlayWebSocketService.MethodResult result)
+    private void OnReceivedPlayerDataUpdate(PlayerData playerData)
     {
-        PlayerData playerData = PlayerData.Deserialize(result.result.value.dataBytes);
         Debug.Log($"Socket Message: Player has {playerData.Wood} wood now.");
         stopWatches[playerData.LastId].Stop();
         lastTransactionTimeInMs = stopWatches[playerData.LastId].ElapsedMilliseconds;
@@ -200,15 +191,15 @@ public class AnchorService : MonoBehaviour
 
         if (gameData != null)
         {
-            ServiceFactory.Resolve<SolPlayWebSocketService>()
-                .SubscribeToPubKeyData(GameDataPDA, OnRecievedGameDataUpdate);
+            await anchorClient.SubscribeGameDataAsync(GameDataPDA, (state, value, gameData) =>
+            {
+                OnRecievedGameDataUpdate(gameData);
+            }, Commitment.Processed);
         }
     }
 
-    private void OnRecievedGameDataUpdate(SolPlayWebSocketService.MethodResult result)
+    private void OnRecievedGameDataUpdate(GameData gameData)
     {
-        GameData gameData = GameData.Deserialize(result.result.value.dataBytes);
-
         Debug.Log($"Socket Message: Total log chopped  {gameData.TotalWoodCollected}.");
         CurrentGameData = gameData;
         OnGameDataChanged?.Invoke(gameData);

@@ -2,9 +2,11 @@
 using Frictionless;
 using NativeWebSocket;
 using Socket;
+using Solana.Unity.SDK;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using WebSocketState = System.Net.WebSockets.WebSocketState;
 
 public class SocketStatusWidget : MonoBehaviour
 {
@@ -24,11 +26,10 @@ public class SocketStatusWidget : MonoBehaviour
 
     void Update()
     {
-        var socketService = ServiceFactory.Resolve<SolPlayWebSocketService>();
-        if (socketService != null)
+        if (Web3.WsRpc != null)
         {
-            StatusText.text = "Socket: " + socketService.GetState();
-            ReconnectButton.gameObject.SetActive(socketService.GetState() == WebSocketState.Closed);
+            StatusText.text = "Socket: " + Web3.WsRpc.State;
+            ReconnectButton.gameObject.SetActive(Web3.WsRpc.State == WebSocketState.Closed);
         }
     }
 }
