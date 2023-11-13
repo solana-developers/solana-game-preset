@@ -39,7 +39,7 @@ namespace Game.Scripts.Ui
 
         private async void UpdateAndSubscribeToTokenAccount()
         {
-            if (Web3.Instance.WalletBase.Account == null)
+            if (Web3.Instance == null || Web3.Instance.WalletBase.Account == null)
             {
                 return;
             }

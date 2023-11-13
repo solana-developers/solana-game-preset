@@ -163,7 +163,7 @@ public class AnchorService : MonoBehaviour
         }
     }
 
-    private async void OnReceivedPlayerDataUpdate(PlayerData playerData)
+    private void OnReceivedPlayerDataUpdate(PlayerData playerData)
     {
         Debug.Log($"Socket Message: Player has {playerData.Wood} wood now.");
         stopWatches[playerData.LastId].Stop();
@@ -199,7 +199,7 @@ public class AnchorService : MonoBehaviour
         }
     }
 
-    private async void OnRecievedGameDataUpdate(GameData gameData)
+    private void OnRecievedGameDataUpdate(GameData gameData)
     {
         Debug.Log($"Socket Message: Total log chopped  {gameData.TotalWoodCollected}.");
         CurrentGameData = gameData;
