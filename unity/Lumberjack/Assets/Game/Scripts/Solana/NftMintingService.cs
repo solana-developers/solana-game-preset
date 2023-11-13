@@ -40,7 +40,7 @@ namespace Services
             yield return null;
         }
 
-        public async Task<string> MintNftWithMetaData(string metaDataUri, string name, string symbol, Action<bool> mintDone = null)
+        public async Task<string> MintNftWithMetaData(string metaDataUri, string name, string symbol, Action<bool> onMintDone = null)
         {
             var account = Web3.Account;
             var rpcClient = Web3.Rpc;
@@ -210,13 +210,13 @@ namespace Services
 
             if (!res.WasSuccessful)
             {
-                mintDone?.Invoke(false);
+                onMintDone?.Invoke(false);
                 Debug
                     .Log("Mint was not successfull: " + res.Reason);
             }
             else
             {
-                mintDone?.Invoke(true);
+                onMintDone?.Invoke(true);
                 Debug.Log("Mint Successfull! Woop woop!");
             }
 

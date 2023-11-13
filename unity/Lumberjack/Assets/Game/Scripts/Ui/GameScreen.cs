@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Frictionless;
 using Lumberjack.Accounts;
@@ -41,7 +42,12 @@ public class GameScreen : MonoBehaviour
         NftsButton.onClick.AddListener(OnNftsButtonClicked);
         InitGameDataButton.onClick.AddListener(OnInitGameDataButtonClicked);
         CharacterStartPosition = ChuckWoodSessionButton.transform.localPosition;
-        
+        // In case we are not logged in yet load the LoginScene
+        if (Web3.Account == null)
+        {
+            SceneManager.LoadScene("LoginScene");
+            return;
+        }
         StartCoroutine(UpdateNextEnergy());
         
         AnchorService.OnPlayerDataChanged += OnPlayerDataChanged;
@@ -58,12 +64,6 @@ public class GameScreen : MonoBehaviour
 
     private void OnEnable()
     {
-        // In case we are not logged in yet load the LoginScene
-        if (Web3.Account == null)
-        {
-            SceneManager.LoadScene("LoginScene");
-            return;
-        }
         StartCoroutine(UpdateNextEnergy());
     }
 

@@ -17,9 +17,10 @@ namespace Services
     /// </summary>
     public class NftService : MonoBehaviour, IMultiSceneSingleton
     {
+        public const string NftCreator = "8DQSv6bnq2oomwk15sq1tiS6f1FXecxyBaHVeBG9BhPV";
+
         public List<Nft> LoadedNfts = new ();
         public bool IsLoadingTokenAccounts { get; private set; }
-        public const string NftMintAuthority = "GsfNSuZFrT2r4xzSndnCSs9tTXwt47etPqU8yFVnDcXd";
         public Nft SelectedNft { get; private set; }
         public Texture2D LocalDummyNft;
         public bool LoadNftsOnStartUp = true;
@@ -117,13 +118,32 @@ namespace Services
             return PlayerPrefs.GetString("SelectedNft");
         }
 
-        public bool OwnsNftOfMintAuthority(string authority)
+        public bool OwnsNftOfUpdateAuthority(string authority)
         {
             foreach (var nft in LoadedNfts)
             {
                 if (nft.metaplexData.data.updateAuthority != null && nft.metaplexData.data.updateAuthority == authority)
                 {
                     return true;
+                }
+            }
+
+            return false;
+        }
+
+        public bool OwnsNftByCreator(string creator)
+        {
+            foreach (var nft in LoadedNfts)
+            {
+                if (nft.metaplexData.data.metadata != null && nft.metaplexData.data.metadata.creators != null)
+                {
+                    foreach (var nftCreator in nft.metaplexData.data.metadata.creators)
+                    {
+                        if (nftCreator.key == creator)
+                        {
+                            return true;       
+                        }
+                    }
                 }
             }
 

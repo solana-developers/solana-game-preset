@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using Frictionless;
 using Game.Scripts.Ui;
 using Lumberjack;
@@ -18,7 +19,6 @@ using Solana.Unity.SDK;
 using Solana.Unity.SessionKeys.GplSession.Accounts;
 using Solana.Unity.Wallet;
 using Services;
-using Socket;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
@@ -44,6 +44,7 @@ public class AnchorService : MonoBehaviour
     public int BlockingTransactionsInProgress => blockingTransactionsInProgress;
     public int NonBlockingTransactionsInProgress => nonBlockingTransactionsInProgress;
     public long LastTransactionTimeInMs => lastTransactionTimeInMs;
+    public string LastError { get; set; }
 
     private SessionWallet sessionWallet;
     private PublicKey PlayerDataPDA;
@@ -162,7 +163,7 @@ public class AnchorService : MonoBehaviour
         }
     }
 
-    private void OnReceivedPlayerDataUpdate(PlayerData playerData)
+    private async void OnReceivedPlayerDataUpdate(PlayerData playerData)
     {
         Debug.Log($"Socket Message: Player has {playerData.Wood} wood now.");
         stopWatches[playerData.LastId].Stop();
@@ -198,7 +199,7 @@ public class AnchorService : MonoBehaviour
         }
     }
 
-    private void OnRecievedGameDataUpdate(GameData gameData)
+    private async void OnRecievedGameDataUpdate(GameData gameData)
     {
         Debug.Log($"Socket Message: Total log chopped  {gameData.TotalWoodCollected}.");
         CurrentGameData = gameData;
@@ -250,7 +251,8 @@ public class AnchorService : MonoBehaviour
         Action onSucccess = null, Action<string> onError = null, bool isBlocking = true)
     {
         (isBlocking ? ref blockingTransactionsInProgress : ref nonBlockingTransactionsInProgress)++;
-
+        LastError = String.Empty;
+        
         Debug.Log("Sending and confirming transaction: " + label);
         RequestResult<string> res;
         try
@@ -262,7 +264,7 @@ public class AnchorService : MonoBehaviour
             Debug.Log("Transaction exception " + e);
             blockingTransactionsInProgress--;
             (isBlocking ? ref blockingTransactionsInProgress : ref nonBlockingTransactionsInProgress)--;
-
+            LastError = e.Message;
             onError?.Invoke(e.ToString());
             return false;
         }
@@ -282,6 +284,7 @@ public class AnchorService : MonoBehaviour
                 //TriggerTopUpTransaction();
             }
 
+            LastError = res.RawRpcResponse;
             (isBlocking ? ref blockingTransactionsInProgress : ref nonBlockingTransactionsInProgress)--;
 
             onError?.Invoke(res.RawRpcResponse);

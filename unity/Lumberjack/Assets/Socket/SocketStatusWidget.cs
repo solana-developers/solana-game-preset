@@ -1,7 +1,4 @@
 #pragma warning disable CS0436
-using Frictionless;
-using NativeWebSocket;
-using Socket;
 using Solana.Unity.SDK;
 using TMPro;
 using UnityEngine;
@@ -20,8 +17,7 @@ public class SocketStatusWidget : MonoBehaviour
 
     private void OnReconnectClicked()
     {
-        var socketService = ServiceFactory.Resolve<SolPlayWebSocketService>();
-        StartCoroutine(socketService.Reconnect());
+        // Should automatically reconnect
     }
 
     void Update()
