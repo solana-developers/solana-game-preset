@@ -24,7 +24,9 @@ namespace Game.Scripts.Ui
         void Awake()
         {
             Web3.OnLogin += onLogin;
+            UpdateAndSubscribeToTokenAccount();
         }
+        
         void OnDestroy()
         {
             Web3.OnLogin -= onLogin;
