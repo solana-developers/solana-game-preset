@@ -6,6 +6,12 @@ There is a js and a unity client for this game and both are talking to a solana 
 This game uses gum session keys for auto approval of transactions. 
 Note that neither the program nor session keys are audited. Use at your own risk. 
 
+To initialize the game preset with your own project name please use the command: 
+
+```bash
+npx create-solana-game <name> 
+```
+
 # How to run this example
 
 ## Quickstart
