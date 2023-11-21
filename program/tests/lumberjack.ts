@@ -3,64 +3,75 @@ import { Program } from "@coral-xyz/anchor";
 import { Lumberjack } from "../target/types/lumberjack";
 
 describe("lumberjack", () => {
-  // Configure the client to use the local cluster.
-  anchor.setProvider(anchor.AnchorProvider.env());
+
+  const provider = anchor.AnchorProvider.env()
+  anchor.setProvider(provider)
   const program = anchor.workspace.Lumberjack as Program<Lumberjack>;
+  const payer = provider.wallet as anchor.Wallet
+  const gameDataSeed = "gameData";
 
   it("Init player and chop tree!", async () => {
 
-    const localKeypair = anchor.web3.Keypair.generate();
+    console.log("Local address", payer.publicKey.toBase58());
 
-    const res = await anchor.getProvider().connection.requestAirdrop(localKeypair.publicKey, 1e9);
-    await anchor.getProvider().connection.confirmTransaction(res, "confirmed");
+    const balance = await anchor.getProvider().connection.getBalance(payer.publicKey);
+    
+    if (balance < 1e8) {
+      const res = await anchor.getProvider().connection.requestAirdrop(payer.publicKey, 1e9);
+      await anchor.getProvider().connection.confirmTransaction(res, "confirmed");  
+    }
 
     const [playerPDA] = anchor.web3.PublicKey.findProgramAddressSync(
       [
         Buffer.from("player"),
-        localKeypair.publicKey.toBuffer(),        
+        payer.publicKey.toBuffer(),        
       ],
       program.programId
     );
+
+    console.log("Player PDA", playerPDA.toBase58());
 
     const [gameDataPDA] = anchor.web3.PublicKey.findProgramAddressSync(
       [
-        Buffer.from("gameData")       
+        Buffer.from(gameDataSeed)       
       ],
       program.programId
     );
 
-    let tx = await program.methods.initPlayer()
-    .accounts(
-      {
-        player: playerPDA,
-        gameData: gameDataPDA,
-        signer: localKeypair.publicKey,        
-        systemProgram: anchor.web3.SystemProgram.programId,
-      }    
-    )
-    .signers([localKeypair])
-    .rpc({skipPreflight: true});
-    console.log("Init transaction", tx);
+    try {
+      let tx = await program.methods.initPlayer(gameDataSeed)
+      .accounts(
+        {
+          player: playerPDA,
+          gameData: gameDataPDA,
+          signer: payer.publicKey,        
+          systemProgram: anchor.web3.SystemProgram.programId,
+        }    
+      )
+      .rpc({skipPreflight: true});
+      console.log("Init transaction", tx);
+      
+      await anchor.getProvider().connection.confirmTransaction(tx, "confirmed");
+      console.log("Confirmed", tx);
+
+    } catch (e) {
+      console.log("Player already exists: ", e);
+    }
     
-    await anchor.getProvider().connection.confirmTransaction(tx, "confirmed");
-
-    console.log("Confirmed", tx);
-
     for (let i = 0; i < 11; i++) {
       console.log(`Chop instruction ${i}`);
 
-      tx = await program.methods
-      .chopTree("gameData", 0)
+      let tx = await program.methods
+      .chopTree(gameDataSeed, 0)
       .accounts(
         {
           sessionToken: null,
           player: playerPDA,
           gameData: gameDataPDA,
           systemProgram: anchor.web3.SystemProgram.programId,
-          signer: localKeypair.publicKey
+          signer: payer.publicKey
         }    
       )
-      .signers([localKeypair])
       .rpc({skipPreflight: true});
       console.log("Chop instruction", tx);
       await anchor.getProvider().connection.confirmTransaction(tx, "confirmed");
