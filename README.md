@@ -1,7 +1,7 @@
 # Solana Game Preset
 
-This game is ment as a starter game for on chain games. 
-There is a js and a unity client for this game and both are talking to a solana anchor program.
+This game is meant as a starter game for onchain games. 
+There is a JS and a Unity client for this game and both are talking to a Solana Anchor program.
 
 This game uses gum session keys for auto approval of transactions. 
 Note that neither the program nor session keys are audited. Use at your own risk. 
