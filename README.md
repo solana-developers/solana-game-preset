@@ -1,33 +1,35 @@
 # Solana Game Preset
 
-This game is meant as a starter game for onchain games. 
+This game is meant as a starter game for onchain games.
 There is a JS and a Unity client for this game and both are talking to a Solana Anchor program.
 
-This game uses gum session keys for auto approval of transactions. 
-Note that neither the program nor session keys are audited. Use at your own risk. 
+This game uses gum session keys for auto approval of transactions.
+Note that neither the program nor session keys are audited. Use at your own risk.
 
-To initialize the game preset with your own project name please use the command: 
+To initialize the game preset with your own project name please use the command:
 
 ```bash
-npx create-solana-game <name> 
+npx create-solana-game <name>
 ```
 
 # How to run this example
 
 ## Quickstart
 
-The unity client and the js client are both connected to the same program and should work out of the box connecting to the already deployed program. 
+The unity client and the js client are both connected to the same program and should work out of the box connecting to the already deployed program.
 
-### Unity 
+### Unity
+
 Open the Unity project with Unity Version 2021.3.32.f1 (or similar), open the GameScene or LoginScene and hit play.
 Use the editor login button in the bottom left. If you cant get devnet sol you can copy your address from the console and use the faucet here: https://faucet.solana.com/ to request some sol.
 
 ### Js Client
-To start the js client open the project in visual studio code and run: 
+
+To start the js client open the project in visual studio code and run:
 
 ```bash
-cd app 
-yarn install 
+cd app
+yarn install
 yarn dev
 ```
 
@@ -40,6 +42,7 @@ Install the latest 1.16 solana version (1.17 is not supported yet)
 sh -c "$(curl -sSfL https://release.solana.com/v1.16.18/install)"
 
 Anchor program
+
 1. Install the [Anchor CLI](https://project-serum.github.io/anchor/getting-started/installation.html)
 2. `cd program` to end the program directory
 3. Run `anchor build` to build the program
@@ -48,24 +51,32 @@ Anchor program
 6. Build and deploy again
 
 Next js client
+
 1. Install [Node.js](https://nodejs.org/en/download/)
 2. Copy the program id into app/utils/anchor.ts
-2. `cd app` to end the app directory
-3. Run `yarn install` to install node modules
-4. Run `yarn dev` to start the client
-5. After doing changes to the anchor program make sure to copy over the types from the program into the client so you can use them. You can find the js types in the target/idl folder.
+3. `cd app` to end the app directory
+4. Run `yarn install` to install node modules
+5. Run `yarn dev` to start the client
+6. After doing changes to the anchor program make sure to copy over the types from the program into the client so you can use them. You can find the js types in the target/idl folder.
 
-Unity client 
+Unity client
+
 1. Install [Unity](https://unity.com/)
 2. Open the MainScene
 3. Hit play
 4. After doing changes to the anchor program make sure to regenerate the C# client: https://solanacookbook.com/gaming/porting-anchor-to-unity.html#generating-the-client
-Its done like this (after you have build the program): 
+   Its done like this (after you have build the program):
 
 ```bash
-cd program 
+cd program
 dotnet tool install Solana.Unity.Anchor.Tool <- run once
 dotnet anchorgen -i target/idl/lumberjack.json -o target/idl/Lumberjack.cs
+```
+
+If you are still on an old version that is not compatible with anchor 0.30.1 (<0.2.13) please run:
+
+```bash
+dotnet tool update -g Solana.Unity.Anchor.Tool
 ```
 
 (Replace lumberjack with the name of your program)
@@ -73,18 +84,21 @@ dotnet anchorgen -i target/idl/lumberjack.json -o target/idl/Lumberjack.cs
 then copy the c# code into the unity project.
 
 ## Connect to local host (optional)
-To connect to local host from Unity add these links on the wallet holder game object: 
+
+To connect to local host from Unity add these links on the wallet holder game object:
 http://localhost:8899
 ws://localhost:8900
 
 ## Video walkthroughs
-Here are two videos explaining the energy logic and session keys: 
+
+Here are two videos explaining the energy logic and session keys:
 Session keys:
 https://www.youtube.com/watch?v=oKvWZoybv7Y&t=17s&ab_channel=Solana
-Energy system: 
+Energy system:
 https://www.youtube.com/watch?v=YYQtRCXJBgs&t=4s&ab_channel=Solana
 
 # Project structure
+
 The anchor project is structured like this:
 
 The entry point is in the lib.rs file. Here we define the program id and the instructions.
@@ -110,22 +124,22 @@ The instructions then call the state to get the data and update it.
 
 ```
 
-The project uses session keys (maintained by Magic Block) for auto approving transactions using an expiring token. 
+The project uses session keys (maintained by Magic Block) for auto approving transactions using an expiring token.
 
-# Energy System  
+# Energy System
 
 Many casual games in traditional gaming use energy systems. This is how you can build it on chain.
 
-If you have no prior knowledge in solan and rust programming it is recommended to start with the Solana cookbook [Hello world example]([https://unity.com/](https://solanacookbook.com/gaming/hello-world.html#getting-started-with-your-first-solana-game)).  
+If you have no prior knowledge in solan and rust programming it is recommended to start with the Solana cookbook [Hello world example](<[https://unity.com/](https://solanacookbook.com/gaming/hello-world.html#getting-started-with-your-first-solana-game)>).
 
-## Anchor program 
+## Anchor program
 
-Here we will build a program which refills energy over time which the player can then use to perform actions in the game. 
-In our example it will be a lumber jack which chops trees. Every tree will reward on wood and cost one energy. 
+Here we will build a program which refills energy over time which the player can then use to perform actions in the game.
+In our example it will be a lumber jack which chops trees. Every tree will reward on wood and cost one energy.
 
 ### Creating the player account
 
-First the player needs to create an account which saves the state of our player. Notice the last_login time which will save the current unix time stamp of the player he interacts with the program. 
+First the player needs to create an account which saves the state of our player. Notice the last_login time which will save the current unix time stamp of the player he interacts with the program.
 Like this we will be able to calculate how much energy the player has at a certain point in time.  
 We also have a value for wood which will store the wood the lumber jack chucks in the game.
 
@@ -166,7 +180,7 @@ pub struct InitPlayer<'info> {
 
 ### Chopping trees
 
-Then whenever the player calls the chop_tree instruction we will check if the player has enough energy and reward him with one wood. 
+Then whenever the player calls the chop_tree instruction we will check if the player has enough energy and reward him with one wood.
 
 ```rust
     #[error_code]
@@ -192,9 +206,9 @@ Then whenever the player calls the chop_tree instruction we will check if the pl
 
 ### Calculating the energy
 
-The interesting part happens in the update_energy function. We check how much time has passed and calculate the energy that the player will have at the given time. 
-The same thing we will also do in the client. So we basically lazily update the energy instead of polling it all the time. 
-The is a common technic in game development. 
+The interesting part happens in the update_energy function. We check how much time has passed and calculate the energy that the player will have at the given time.
+The same thing we will also do in the client. So we basically lazily update the energy instead of polling it all the time.
+The is a common technic in game development.
 
 ```rust
 
@@ -227,7 +241,7 @@ pub fn update_energy(&mut self) -> Result<()> {
 }
 ```
 
-## Js client 
+## Js client
 
 ### Subscribe to account updates
 
@@ -235,25 +249,25 @@ It is possible to subscribe to account updates via a websocket. This get updates
 
 ```js
 useEffect(() => {
-    if (!publicKey) {return;}
-    const [pda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("player", "utf8"), 
-        publicKey.toBuffer()],
-        new PublicKey(LUMBERJACK_PROGRAM_ID)
-      );
-    try {
-      program.account.playerData.fetch(pda).then((data) => {
-        setGameState(data);
-      });
-    } catch (e) {
-      window.alert("No player data found, please init!");
-    }
- 
-    connection.onAccountChange(pda, (account) => {
-        setGameState(program.coder.accounts.decode("playerData", account.data));
+  if (!publicKey) {
+    return;
+  }
+  const [pda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("player", "utf8"), publicKey.toBuffer()],
+    new PublicKey(LUMBERJACK_PROGRAM_ID)
+  );
+  try {
+    program.account.playerData.fetch(pda).then((data) => {
+      setGameState(data);
     });
+  } catch (e) {
+    window.alert("No player data found, please init!");
+  }
 
-  }, [publicKey]);
+  connection.onAccountChange(pda, (account) => {
+    setGameState(program.coder.accounts.decode("playerData", account.data));
+  });
+}, [publicKey]);
 ```
 
 ### Calculate energy and show countdown
@@ -289,25 +303,25 @@ const interval = setInterval(async () => {
 
 {(gameState && <div className="flex flex-col items-center">
     {("Wood: " + gameState.wood + " Energy: " + gameState.energy + " Next energy in: " + nextEnergyIn )}
-</div>)} 
+</div>)}
 
-  ```
+```
 
-## Unity client 
+## Unity client
 
-In the Unity client everything interesting happens in the AnchorService. 
+In the Unity client everything interesting happens in the AnchorService.
 To generate the client code you can follow the instructions here: https://solanacookbook.com/gaming/porting-anchor-to-unity.html#generating-the-client
 
 ```bash
-cd program 
+cd program
 dotnet tool install Solana.Unity.Anchor.Tool <- run once
 dotnet anchorgen -i target/idl/lumberjack.json -o target/idl/Lumberjack.cs
 ```
 
 ### Session keys
 
-Session keys is an optional component. What it does is creating a local key pair which is toped up with some sol which can be used to autoapprove transactions. The session token is only allowed on certain functions of the program and has an expiry of 23 hours. Then the player will get the sol back and can create a new session.  
+Session keys is an optional component. What it does is creating a local key pair which is toped up with some sol which can be used to autoapprove transactions. The session token is only allowed on certain functions of the program and has an expiry of 23 hours. Then the player will get the sol back and can create a new session.
 
 With this you can now build any energy based game and even if someone builds a bot for the game the most he can do is play optimally, which maybe even easier to achieve when playing normally depending on the logic of your game.
 
-This game becomes even better when combined with the Token example from Solana Cookbook and you actually drop some spl token to the players. 
+This game becomes even better when combined with the Token example from Solana Cookbook and you actually drop some spl token to the players.

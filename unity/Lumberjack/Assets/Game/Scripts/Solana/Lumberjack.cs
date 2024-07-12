@@ -16,6 +16,7 @@ using Lumberjack;
 using Lumberjack.Program;
 using Lumberjack.Errors;
 using Lumberjack.Accounts;
+using Lumberjack.Types;
 
 namespace Lumberjack
 {
@@ -96,6 +97,42 @@ namespace Lumberjack
                 return result;
             }
         }
+
+        public partial class SessionToken
+        {
+            public static ulong ACCOUNT_DISCRIMINATOR => 1081168673100727529UL;
+            public static ReadOnlySpan<byte> ACCOUNT_DISCRIMINATOR_BYTES => new byte[]{233, 4, 115, 14, 46, 21, 1, 15};
+            public static string ACCOUNT_DISCRIMINATOR_B58 => "fyZWTdUu1pS";
+            public PublicKey Authority { get; set; }
+
+            public PublicKey TargetProgram { get; set; }
+
+            public PublicKey SessionSigner { get; set; }
+
+            public long ValidUntil { get; set; }
+
+            public static SessionToken Deserialize(ReadOnlySpan<byte> _data)
+            {
+                int offset = 0;
+                ulong accountHashValue = _data.GetU64(offset);
+                offset += 8;
+                if (accountHashValue != ACCOUNT_DISCRIMINATOR)
+                {
+                    return null;
+                }
+
+                SessionToken result = new SessionToken();
+                result.Authority = _data.GetPubKey(offset);
+                offset += 32;
+                result.TargetProgram = _data.GetPubKey(offset);
+                offset += 32;
+                result.SessionSigner = _data.GetPubKey(offset);
+                offset += 32;
+                result.ValidUntil = _data.GetS64(offset);
+                offset += 8;
+                return result;
+            }
+        }
     }
 
     namespace Errors
@@ -107,13 +144,17 @@ namespace Lumberjack
         }
     }
 
+    namespace Types
+    {
+    }
+
     public partial class LumberjackClient : TransactionalBaseClient<LumberjackErrorKind>
     {
         public LumberjackClient(IRpcClient rpcClient, IStreamingRpcClient streamingRpcClient, PublicKey programId) : base(rpcClient, streamingRpcClient, programId)
         {
         }
 
-        public async Task<Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<GameData>>> GetGameDatasAsync(string programAddress, Commitment commitment = Commitment.Finalized)
+        public async Task<Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<GameData>>> GetGameDatasAsync(string programAddress, Commitment commitment = Commitment.Confirmed)
         {
             var list = new List<Solana.Unity.Rpc.Models.MemCmp>{new Solana.Unity.Rpc.Models.MemCmp{Bytes = GameData.ACCOUNT_DISCRIMINATOR_B58, Offset = 0}};
             var res = await RpcClient.GetProgramAccountsAsync(programAddress, commitment, memCmpList: list);
@@ -124,7 +165,7 @@ namespace Lumberjack
             return new Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<GameData>>(res, resultingAccounts);
         }
 
-        public async Task<Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<PlayerData>>> GetPlayerDatasAsync(string programAddress, Commitment commitment = Commitment.Finalized)
+        public async Task<Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<PlayerData>>> GetPlayerDatasAsync(string programAddress, Commitment commitment = Commitment.Confirmed)
         {
             var list = new List<Solana.Unity.Rpc.Models.MemCmp>{new Solana.Unity.Rpc.Models.MemCmp{Bytes = PlayerData.ACCOUNT_DISCRIMINATOR_B58, Offset = 0}};
             var res = await RpcClient.GetProgramAccountsAsync(programAddress, commitment, memCmpList: list);
@@ -133,6 +174,17 @@ namespace Lumberjack
             List<PlayerData> resultingAccounts = new List<PlayerData>(res.Result.Count);
             resultingAccounts.AddRange(res.Result.Select(result => PlayerData.Deserialize(Convert.FromBase64String(result.Account.Data[0]))));
             return new Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<PlayerData>>(res, resultingAccounts);
+        }
+
+        public async Task<Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<SessionToken>>> GetSessionTokensAsync(string programAddress, Commitment commitment = Commitment.Confirmed)
+        {
+            var list = new List<Solana.Unity.Rpc.Models.MemCmp>{new Solana.Unity.Rpc.Models.MemCmp{Bytes = SessionToken.ACCOUNT_DISCRIMINATOR_B58, Offset = 0}};
+            var res = await RpcClient.GetProgramAccountsAsync(programAddress, commitment, memCmpList: list);
+            if (!res.WasSuccessful || !(res.Result?.Count > 0))
+                return new Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<SessionToken>>(res);
+            List<SessionToken> resultingAccounts = new List<SessionToken>(res.Result.Count);
+            resultingAccounts.AddRange(res.Result.Select(result => SessionToken.Deserialize(Convert.FromBase64String(result.Account.Data[0]))));
+            return new Solana.Unity.Programs.Models.ProgramAccountsResultWrapper<List<SessionToken>>(res, resultingAccounts);
         }
 
         public async Task<Solana.Unity.Programs.Models.AccountResultWrapper<GameData>> GetGameDataAsync(string accountAddress, Commitment commitment = Commitment.Finalized)
@@ -151,6 +203,15 @@ namespace Lumberjack
                 return new Solana.Unity.Programs.Models.AccountResultWrapper<PlayerData>(res);
             var resultingAccount = PlayerData.Deserialize(Convert.FromBase64String(res.Result.Value.Data[0]));
             return new Solana.Unity.Programs.Models.AccountResultWrapper<PlayerData>(res, resultingAccount);
+        }
+
+        public async Task<Solana.Unity.Programs.Models.AccountResultWrapper<SessionToken>> GetSessionTokenAsync(string accountAddress, Commitment commitment = Commitment.Finalized)
+        {
+            var res = await RpcClient.GetAccountInfoAsync(accountAddress, commitment);
+            if (!res.WasSuccessful)
+                return new Solana.Unity.Programs.Models.AccountResultWrapper<SessionToken>(res);
+            var resultingAccount = SessionToken.Deserialize(Convert.FromBase64String(res.Result.Value.Data[0]));
+            return new Solana.Unity.Programs.Models.AccountResultWrapper<SessionToken>(res, resultingAccount);
         }
 
         public async Task<SubscriptionState> SubscribeGameDataAsync(string accountAddress, Action<SubscriptionState, Solana.Unity.Rpc.Messages.ResponseValue<Solana.Unity.Rpc.Models.AccountInfo>, GameData> callback, Commitment commitment = Commitment.Finalized)
@@ -177,22 +238,16 @@ namespace Lumberjack
             return res;
         }
 
-        public async Task<RequestResult<string>> SendInitPlayerAsync(InitPlayerAccounts accounts, string levelSeed, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
+        public async Task<SubscriptionState> SubscribeSessionTokenAsync(string accountAddress, Action<SubscriptionState, Solana.Unity.Rpc.Messages.ResponseValue<Solana.Unity.Rpc.Models.AccountInfo>, SessionToken> callback, Commitment commitment = Commitment.Finalized)
         {
-            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.LumberjackProgram.InitPlayer(accounts, levelSeed, programId);
-            return await SignAndSendTransaction(instr, feePayer, signingCallback);
-        }
-
-        public async Task<RequestResult<string>> SendChopTreeAsync(ChopTreeAccounts accounts, string levelSeed, ushort counter, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
-        {
-            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.LumberjackProgram.ChopTree(accounts, levelSeed, counter, programId);
-            return await SignAndSendTransaction(instr, feePayer, signingCallback);
-        }
-
-        public async Task<RequestResult<string>> SendSuperChopTreeAsync(SuperChopTreeAccounts accounts, string levelSeed, ushort counter, PublicKey feePayer, Func<byte[], PublicKey, byte[]> signingCallback, PublicKey programId)
-        {
-            Solana.Unity.Rpc.Models.TransactionInstruction instr = Program.LumberjackProgram.SuperChopTree(accounts, levelSeed, counter, programId);
-            return await SignAndSendTransaction(instr, feePayer, signingCallback);
+            SubscriptionState res = await StreamingRpcClient.SubscribeAccountInfoAsync(accountAddress, (s, e) =>
+            {
+                SessionToken parsingResult = null;
+                if (e.Value?.Data?.Count > 0)
+                    parsingResult = SessionToken.Deserialize(Convert.FromBase64String(e.Value.Data[0]));
+                callback(s, e, parsingResult);
+            }, commitment);
+            return res;
         }
 
         protected override Dictionary<uint, ProgramError<LumberjackErrorKind>> BuildErrorsDictionary()
@@ -203,17 +258,6 @@ namespace Lumberjack
 
     namespace Program
     {
-        public class InitPlayerAccounts
-        {
-            public PublicKey Player { get; set; }
-
-            public PublicKey GameData { get; set; }
-
-            public PublicKey Signer { get; set; }
-
-            public PublicKey SystemProgram { get; set; }
-        }
-
         public class ChopTreeAccounts
         {
             public PublicKey SessionToken { get; set; }
@@ -227,10 +271,8 @@ namespace Lumberjack
             public PublicKey SystemProgram { get; set; }
         }
 
-        public class SuperChopTreeAccounts
+        public class InitPlayerAccounts
         {
-            public PublicKey SessionToken { get; set; }
-
             public PublicKey Player { get; set; }
 
             public PublicKey GameData { get; set; }
@@ -242,21 +284,8 @@ namespace Lumberjack
 
         public static class LumberjackProgram
         {
-            public static Solana.Unity.Rpc.Models.TransactionInstruction InitPlayer(InitPlayerAccounts accounts, string levelSeed, PublicKey programId)
-            {
-                List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
-                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Player, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameData, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Signer, true), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false)};
-                byte[] _data = new byte[1200];
-                int offset = 0;
-                _data.WriteU64(4819994211046333298UL, offset);
-                offset += 8;
-                offset += _data.WriteBorshString(levelSeed, offset);
-                byte[] resultData = new byte[offset];
-                Array.Copy(_data, resultData, offset);
-                return new Solana.Unity.Rpc.Models.TransactionInstruction{Keys = keys, ProgramId = programId.KeyBytes, Data = resultData};
-            }
-
-            public static Solana.Unity.Rpc.Models.TransactionInstruction ChopTree(ChopTreeAccounts accounts, string levelSeed, ushort counter, PublicKey programId)
+            public const string ID = "11111111111111111111111111111111";
+            public static Solana.Unity.Rpc.Models.TransactionInstruction ChopTree(ChopTreeAccounts accounts, string _level_seed, ushort counter, PublicKey programId)
             {
                 List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
                 {Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SessionToken == null ? programId : accounts.SessionToken, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Player, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameData, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Signer, true), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false)};
@@ -264,7 +293,7 @@ namespace Lumberjack
                 int offset = 0;
                 _data.WriteU64(2027946759707441272UL, offset);
                 offset += 8;
-                offset += _data.WriteBorshString(levelSeed, offset);
+                offset += _data.WriteBorshString(_level_seed, offset);
                 _data.WriteU16(counter, offset);
                 offset += 2;
                 byte[] resultData = new byte[offset];
@@ -272,17 +301,15 @@ namespace Lumberjack
                 return new Solana.Unity.Rpc.Models.TransactionInstruction{Keys = keys, ProgramId = programId.KeyBytes, Data = resultData};
             }
 
-            public static Solana.Unity.Rpc.Models.TransactionInstruction SuperChopTree(SuperChopTreeAccounts accounts, string levelSeed, ushort counter, PublicKey programId)
+            public static Solana.Unity.Rpc.Models.TransactionInstruction InitPlayer(InitPlayerAccounts accounts, string _level_seed, PublicKey programId)
             {
                 List<Solana.Unity.Rpc.Models.AccountMeta> keys = new()
-                {Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SessionToken == null ? programId : accounts.SessionToken, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Player, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameData, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Signer, true), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false)};
+                {Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Player, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.GameData, false), Solana.Unity.Rpc.Models.AccountMeta.Writable(accounts.Signer, true), Solana.Unity.Rpc.Models.AccountMeta.ReadOnly(accounts.SystemProgram, false)};
                 byte[] _data = new byte[1200];
                 int offset = 0;
-                _data.WriteU64(1750819471606152907UL, offset);
+                _data.WriteU64(4819994211046333298UL, offset);
                 offset += 8;
-                offset += _data.WriteBorshString(levelSeed, offset);
-                _data.WriteU16(counter, offset);
-                offset += 2;
+                offset += _data.WriteBorshString(_level_seed, offset);
                 byte[] resultData = new byte[offset];
                 Array.Copy(_data, resultData, offset);
                 return new Solana.Unity.Rpc.Models.TransactionInstruction{Keys = keys, ProgramId = programId.KeyBytes, Data = resultData};
