@@ -1,99 +1,107 @@
-import { createContext, useContext, useEffect, useState } from "react"
-import { PublicKey } from "@solana/web3.js"
-import { useConnection, useWallet } from "@solana/wallet-adapter-react"
+import { createContext, useContext, useEffect, useState } from "react";
+import { PublicKey } from "@solana/web3.js";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import {
-  program,
   PlayerData,
   MAX_ENERGY,
   TIME_TO_REFILL_ENERGY,
   GameData,
   GAME_DATA_SEED,
-} from "@/utils/anchor"
-import { BN } from "@coral-xyz/anchor"
+  PROGRAM_ID,
+  useAnchorProvider,
+  getProgram,
+} from "@/utils/anchor";
+import { BN } from "@coral-xyz/anchor";
 
 const GameStateContext = createContext<{
-  playerDataPDA: PublicKey | null  
-  gameState: PlayerData | null
-  nextEnergyIn: number
-  totalWoodAvailable: number | null
+  playerDataPDA: PublicKey | null;
+  gameState: PlayerData | null;
+  nextEnergyIn: number;
+  totalWoodAvailable: number | null;
 }>({
   playerDataPDA: null,
   gameState: null,
   nextEnergyIn: 0,
-  totalWoodAvailable: 0
-})
+  totalWoodAvailable: 0,
+});
 
-export const useGameState = () => useContext(GameStateContext)
+export const useGameState = () => useContext(GameStateContext);
 
 export const GameStateProvider = ({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) => {
-  const { publicKey } = useWallet()
-  const { connection } = useConnection()
+  const { publicKey } = useWallet();
+  const { connection } = useConnection();
 
-  const [playerDataPDA, setPlayerData] = useState<PublicKey | null>(null)
-  const [playerState, setPlayerState] = useState<PlayerData | null>(null)
-  const [timePassed, setTimePassed] = useState<any>([])
-  const [nextEnergyIn, setEnergyNextIn] = useState<number>(0)
-  const [gameDataPDA, setGameDataPDA] = useState<PublicKey | null>(null)
-  const [gameData, setGameData] = useState<GameData | null>(null)
-  const [totalWoodAvailable, setTotalWoodAvailable] = useState<number | null>(0)
+  const [playerDataPDA, setPlayerData] = useState<PublicKey | null>(null);
+  const [playerState, setPlayerState] = useState<PlayerData | null>(null);
+  const [timePassed, setTimePassed] = useState<any>([]);
+  const [nextEnergyIn, setEnergyNextIn] = useState<number>(0);
+  const [gameDataPDA, setGameDataPDA] = useState<PublicKey | null>(null);
+  const [gameData, setGameData] = useState<GameData | null>(null);
+  const [totalWoodAvailable, setTotalWoodAvailable] = useState<number | null>(
+    0
+  );
+  const provider = useAnchorProvider();
+  var program = getProgram(provider);
 
   useEffect(() => {
-    setPlayerState(null)
+    setPlayerState(null);
     if (!publicKey) {
-      return
+      return;
     }
     const [pda] = PublicKey.findProgramAddressSync(
       [Buffer.from("player", "utf8"), publicKey.toBuffer()],
-      program.programId
-    )
-    setPlayerData(pda)
+      PROGRAM_ID
+    );
+    setPlayerData(pda);
 
     program.account.playerData
       .fetch(pda)
       .then((data) => {
-        setPlayerState(data)
+        setPlayerState(data);
       })
       .catch((error) => {
-        window.alert("No player data found, please init!")
-      })
+        window.alert("No player data found, please init!");
+      });
 
     connection.onAccountChange(pda, (account) => {
-      setPlayerState(program.coder.accounts.decode("playerData", account.data))
-    })
-  }, [publicKey])
+      setPlayerState(program.coder.accounts.decode("playerData", account.data));
+    });
+  }, [publicKey]);
 
   useEffect(() => {
-    setGameData(null)
+    setGameData(null);
     if (!publicKey) {
-      return
+      return;
     }
     const [pda] = PublicKey.findProgramAddressSync(
       [Buffer.from(GAME_DATA_SEED, "utf8")],
-      program.programId
-    )
-    setGameDataPDA(gameDataPDA)
+      PROGRAM_ID
+    );
+    setGameDataPDA(gameDataPDA);
 
     program.account.gameData
       .fetch(pda)
       .then((data) => {
-        setGameData(data)
+        setGameData(data);
         setTotalWoodAvailable(data.totalWoodCollected.toNumber());
       })
       .catch((error) => {
-        window.alert("No game data found, please init!")
-      })
+        window.alert("No game data found, please init!");
+      });
 
     connection.onAccountChange(pda, (account) => {
-      const newGameData = program.coder.accounts.decode("gameData", account.data)
+      const newGameData = program.coder.accounts.decode(
+        "gameData",
+        account.data
+      );
       setGameData(newGameData);
       setTotalWoodAvailable(newGameData.totalWoodCollected.toNumber());
-    })
-  }, [publicKey])
-
+    });
+  }, [publicKey]);
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -104,25 +112,32 @@ export const GameStateProvider = ({
       ) {
         return;
       }
-    
+
       const lastLoginTime = playerState.lastLogin.toNumber() * 1000;
       const currentTime = Date.now();
       let timePassed = (currentTime - lastLoginTime) / 1000;
-    
-      while (timePassed >= TIME_TO_REFILL_ENERGY.toNumber() && playerState.energy.toNumber() < MAX_ENERGY) {
+
+      while (
+        timePassed >= TIME_TO_REFILL_ENERGY.toNumber() &&
+        playerState.energy.toNumber() < MAX_ENERGY
+      ) {
         playerState.energy = playerState.energy.add(new BN(1));
-        playerState.lastLogin = playerState.lastLogin.add(TIME_TO_REFILL_ENERGY);
+        playerState.lastLogin = playerState.lastLogin.add(
+          TIME_TO_REFILL_ENERGY
+        );
         timePassed -= TIME_TO_REFILL_ENERGY.toNumber();
       }
-    
+
       setTimePassed(timePassed);
-    
-      const nextEnergyIn = Math.floor(TIME_TO_REFILL_ENERGY.toNumber() - timePassed);
+
+      const nextEnergyIn = Math.floor(
+        TIME_TO_REFILL_ENERGY.toNumber() - timePassed
+      );
       setEnergyNextIn(nextEnergyIn > 0 ? nextEnergyIn : 0);
     }, 1000);
 
-    return () => clearInterval(interval)
-  }, [playerState, timePassed, nextEnergyIn])
+    return () => clearInterval(interval);
+  }, [playerState, timePassed, nextEnergyIn]);
 
   return (
     <GameStateContext.Provider
@@ -135,5 +150,5 @@ export const GameStateProvider = ({
     >
       {children}
     </GameStateContext.Provider>
-  )
-}
+  );
+};

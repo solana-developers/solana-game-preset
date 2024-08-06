@@ -1,76 +1,85 @@
-import Image from "next/image"
-import { useCallback, useState } from "react"
-import { Button, HStack, VStack } from "@chakra-ui/react"
-import { useConnection, useWallet } from "@solana/wallet-adapter-react"
-import { useSessionWallet } from "@magicblock-labs/gum-react-sdk"
-import { useGameState } from "@/contexts/GameStateProvider"
-import { GAME_DATA_SEED, gameDataPDA, program } from "@/utils/anchor"
+import Image from "next/image";
+import { useCallback, useState } from "react";
+import { Button, HStack, VStack } from "@chakra-ui/react";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { useSessionWallet } from "@magicblock-labs/gum-react-sdk";
+import { useGameState } from "@/contexts/GameStateProvider";
+import {
+  GAME_DATA_SEED,
+  gameDataPDA,
+  getProgram,
+  useAnchorProvider,
+} from "@/utils/anchor";
+import { SystemProgram } from "@solana/web3.js";
 
 const ChopTreeButton = () => {
-  const { publicKey, sendTransaction } = useWallet()
-  const { connection } = useConnection()
-  const sessionWallet = useSessionWallet()
-  const { gameState, playerDataPDA } = useGameState()
-  const [isLoadingSession, setIsLoadingSession] = useState(false)
-  const [isLoadingMainWallet, setIsLoadingMainWallet] = useState(false)
-  const [transactionCounter, setTransactionCounter] = useState(0)
+  const { publicKey, sendTransaction } = useWallet();
+  const { connection } = useConnection();
+  const sessionWallet = useSessionWallet();
+  const { gameState, playerDataPDA } = useGameState();
+  const [isLoadingSession, setIsLoadingSession] = useState(false);
+  const [isLoadingMainWallet, setIsLoadingMainWallet] = useState(false);
+  const [transactionCounter, setTransactionCounter] = useState(0);
+
+  const provider = useAnchorProvider();
+  var program = getProgram(provider);
 
   const onChopClick = useCallback(async () => {
-    setIsLoadingSession(true)
-    if (!playerDataPDA || !sessionWallet) return
+    setIsLoadingSession(true);
+    if (!playerDataPDA || !sessionWallet) return;
     setTransactionCounter(transactionCounter + 1);
 
     try {
       const transaction = await program.methods
         .chopTree(GAME_DATA_SEED, transactionCounter)
-        .accounts({
+        .accountsPartial({
           player: playerDataPDA,
           gameData: gameDataPDA,
           signer: sessionWallet.publicKey!,
           sessionToken: sessionWallet.sessionToken,
         })
-        .transaction()
+        .transaction();
 
-      const txids = await sessionWallet.signAndSendTransaction!(transaction)
+      const txids = await sessionWallet.signAndSendTransaction!(transaction);
 
       if (txids && txids.length > 0) {
-        console.log("Transaction sent:", txids)
+        console.log("Transaction sent:", txids);
       } else {
-        console.error("Failed to send transaction")
+        console.error("Failed to send transaction");
       }
     } catch (error: any) {
-      console.log("error", `Chopping failed! ${error?.message}`)
+      console.log("error", `Chopping failed! ${error?.message}`);
     } finally {
-      setIsLoadingSession(false)
+      setIsLoadingSession(false);
     }
-  }, [sessionWallet])
+  }, [sessionWallet]);
 
   const onChopMainWalletClick = useCallback(async () => {
-    if (!publicKey || !playerDataPDA) return
+    if (!publicKey || !playerDataPDA) return;
 
-    setIsLoadingMainWallet(true)
+    setIsLoadingMainWallet(true);
 
     try {
       const transaction = await program.methods
         .chopTree(GAME_DATA_SEED, transactionCounter)
-        .accounts({
+        .accountsPartial({
           player: playerDataPDA,
           gameData: gameDataPDA,
           signer: publicKey,
           sessionToken: null,
         })
-        .transaction()
+        .transaction();
 
       const txSig = await sendTransaction(transaction, connection, {
         skipPreflight: true,
-      })
-      console.log(`https://explorer.solana.com/tx/${txSig}?cluster=devnet`)
+      });
+      console.log(`https://explorer.solana.com/tx/${txSig}?cluster=devnet`);
     } catch (error: any) {
-      console.log("error", `Chopping failed! ${error?.message}`)
+      console.log("error", `Chopping failed! ${error?.message}`);
     } finally {
-      setIsLoadingMainWallet(false)
+      setIsLoadingMainWallet(false);
     }
-  }, [publicKey, playerDataPDA, connection])
+  }, [publicKey, playerDataPDA, connection]);
 
   return (
     <>
@@ -98,7 +107,7 @@ const ChopTreeButton = () => {
         </VStack>
       )}
     </>
-  )
-}
+  );
+};
 
-export default ChopTreeButton
+export default ChopTreeButton;
