@@ -6,7 +6,7 @@ import { BankrunProvider } from "anchor-bankrun";
 
 describe("Energy refill", () => {
   test("Turning forward time refills energy", async () => {
-    const context = await startAnchor(".", [], []);
+    const context = await startAnchor("", [], []);
     const client = context.banksClient;
 
     const provider = new BankrunProvider(context);
