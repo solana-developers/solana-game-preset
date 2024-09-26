@@ -1,17 +1,37 @@
 pub use crate::errors::GameErrorCode;
 pub use anchor_lang::prelude::*;
-pub use session_keys::{session_auth_or, Session, SessionError};
+pub use session_keys::{ session_auth_or, Session, SessionError };
 pub mod constants;
 pub mod errors;
 pub mod instructions;
 pub mod state;
 use instructions::*;
 
+#[cfg(not(feature = "no-entrypoint"))]
+use solana_security_txt::security_txt;
+
 declare_id!("MkabCfyUD6rBTaYHpgKBBpBo5qzWA2pK2hrGGKMurJt");
+
+#[cfg(not(feature = "no-entrypoint"))]
+security_txt! {
+    // Required fields
+    name: "Solana Game Preset",
+    project_url: "https://github.com/solana-developers/solana-game-preset",
+    contacts: "email:Dev Rel <devrel@solana.org>,twitter:https://x.com/solana_devs",
+    policy: "There bug bounties in this repository, but PRs are welcome. :)",
+
+    // Optional Fields
+    preferred_languages: "en,de",
+    source_code: "https://github.com/solana-developers/solana-game-preset",
+    source_revision: "5vJwnLeyjV8uNJSp1zn7VLW8GwiQbcsQbGaVSwRmkE4r",
+    source_release: "",
+    encryption: "",
+    auditors: "Verifier pubkey: 5vJwnLeyjV8uNJSp1zn7VLW8GwiQbcsQbGaVSwRmkE4r",
+    acknowledgements: "Thanks to all the contributors!"
+}
 
 #[program]
 pub mod lumberjack {
-
     use super::*;
 
     pub fn init_player(ctx: Context<InitPlayer>, _level_seed: String) -> Result<()> {
