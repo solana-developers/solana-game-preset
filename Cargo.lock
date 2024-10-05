@@ -1268,6 +1268,7 @@ dependencies = [
  "anchor-spl",
  "session-keys",
  "solana-program 2.0.10",
+ "solana-security-txt",
 ]
 
 [[package]]

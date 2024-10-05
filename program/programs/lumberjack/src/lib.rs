@@ -17,7 +17,7 @@ security_txt! {
     // Required fields
     name: "Solana Game Preset",
     project_url: "https://github.com/solana-developers/solana-game-preset",
-    contacts: "email:Dev Rel <devrel@solana.org>,twitter:https://x.com/solana_devs",
+    contacts: "email:Dev Rel <devrel@solana.org>, twitter:https://x.com/solana_devs",
     policy: "There bug bounties in this repository, but PRs are welcome. :)",
 
     // Optional Fields
