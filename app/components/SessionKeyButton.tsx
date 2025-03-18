@@ -13,13 +13,13 @@ const SessionKeyButton = () => {
 
   const handleCreateSession = async () => {
     setIsLoading(true);
-    const topUp = true;
+    const topUpLamports = 10000000;
     const expiryInMinutes = 600;
 
     try {
       const session = await sessionWallet.createSession(
         PROGRAM_ID,
-        topUp,
+        topUpLamports,
         expiryInMinutes
       );
       console.log("Session created:", session);

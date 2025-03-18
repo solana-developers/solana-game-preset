@@ -14,8 +14,8 @@
     "@coral-xyz/anchor": "^0.30.1",
     "@emotion/react": "^11.11.0",
     "@emotion/styled": "^11.11.0",
-    "@magicblock-labs/gum-react-sdk": "^3.0.5",
-    "@magicblock-labs/gum-sdk": "^3.0.5",
+    "@magicblock-labs/gum-react-sdk": "3.0.7",
+    "@magicblock-labs/gum-sdk": "3.0.7",
     "@solana/wallet-adapter-base": "^0.9.23",
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/wallet-adapter-react-ui": "^0.9.35",
@@ -24,14 +24,15 @@
     "@types/node": "22.1.0",
     "@types/react": "18.2.7",
     "@types/react-dom": "18.2.4",
+    "browserify-sign": ">=4.2.2",
+    "crypto-js": ">=4.2.0",
     "eslint": "8.41.0",
     "eslint-config-next": "13.4.4",
     "framer-motion": "^10.12.16",
     "next": "13.4.4",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "typescript": "5.0.4",
-    "browserify-sign": ">=4.2.2",
-    "crypto-js": ">=4.2.0"
-  }
+    "typescript": "5.0.4"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
